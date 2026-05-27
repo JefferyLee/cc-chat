@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Virtual env
+.venv/
+venv/
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+
+# macOS
+.DS_Store

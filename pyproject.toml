@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "claude-chat"
+version = "0.1.0"
+description = "Decentralized, encrypted, asynchronous CLI chat for Claude Code, over the Tox protocol"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+chat = "claude_chat.cli:cli"
+chat-daemon = "claude_chat.daemon:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/claude_chat"]
+
+[tool.pytest.ini_options]
+markers = [
+    "dht: integration tests that connect to the public Tox DHT (slow, network-bound)",
+]

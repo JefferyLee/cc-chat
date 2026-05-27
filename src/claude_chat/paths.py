@@ -1,0 +1,51 @@
+"""Filesystem layout for claude-chat (see PRD §4.8).
+
+The config dir defaults to ~/.config/claude-chat/ but can be overridden with the
+CLAUDE_CHAT_HOME env var — this is what lets us run two independent daemons on
+one machine for testing.
+"""
+import os
+from pathlib import Path
+
+ENV_HOME = "CLAUDE_CHAT_HOME"
+
+
+def config_dir() -> Path:
+    override = os.environ.get(ENV_HOME)
+    if override:
+        return Path(override)
+    return Path.home() / ".config" / "claude-chat"
+
+
+def ensure_config_dir() -> Path:
+    d = config_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def db_path() -> Path:
+    return config_dir() / "chat.db"
+
+
+def socket_path() -> Path:
+    return config_dir() / "daemon.sock"
+
+
+def pid_path() -> Path:
+    return config_dir() / "daemon.pid"
+
+
+def log_path() -> Path:
+    return config_dir() / "daemon.log"
+
+
+def config_path() -> Path:
+    return config_dir() / "config.toml"
+
+
+def tox_state_path() -> Path:
+    return config_dir() / "tox_state.bin"
+
+
+def bootstrap_path() -> Path:
+    return config_dir() / "bootstrap.json"
