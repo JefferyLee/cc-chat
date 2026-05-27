@@ -2,6 +2,7 @@
 IPC and exits. Only `init` and `daemon start` touch the filesystem/process
 directly; everything else goes through the daemon.
 """
+import json
 import subprocess
 import sys
 import time
@@ -23,9 +24,22 @@ def _call(method: str, params: dict | None = None):
         raise click.ClickException(e.message)  # human-readable; code is for programs
 
 
+def _emit(ctx, data) -> bool:
+    """In --json mode, print `data` as JSON and return True so the caller stops.
+    Otherwise return False and let the caller print the human-readable version."""
+    if ctx.obj and ctx.obj.get("json"):
+        click.echo(json.dumps(data, ensure_ascii=False))
+        return True
+    return False
+
+
 @click.group()
-def cli():
+@click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON.")
+@click.pass_context
+def cli(ctx, as_json):
     """Decentralized, encrypted, asynchronous chat over the Tox protocol."""
+    ctx.ensure_object(dict)
+    ctx.obj["json"] = as_json
 
 
 @cli.command()
@@ -43,7 +57,7 @@ def init():
     sp.write_bytes(t.get_savedata())
     t.kill()
     click.echo(
-        f"Initialized claude-chat.\n"
+        f"Initialized cc-chat.\n"
         f"Your Tox ID: {address}\n\n"
         f"Share this ID with friends so they can add you.\n"
         f"Next: start the daemon with `chat daemon start`."
@@ -51,9 +65,12 @@ def init():
 
 
 @cli.command()
-def me():
+@click.pass_context
+def me(ctx):
     """Show your Tox ID and display name."""
     info = _call("get_me")
+    if _emit(ctx, info):
+        return
     click.echo(f"Your Tox ID: {info['tox_id']}")
     if info["name"]:
         click.echo(f"Display name: {info['name']}")
@@ -77,9 +94,12 @@ def _uptime(seconds: int) -> str:
 
 
 @cli.command()
-def status():
+@click.pass_context
+def status(ctx):
     """Show daemon status, DHT connection, contacts, queue and recent stats."""
     st = _call("get_status")
+    if _emit(ctx, st):
+        return
     dht = _CONNECTION.get(st["connection"], "offline") if st["dht_connected"] else "not connected"
     click.echo(f"Daemon: running (PID {st['pid']})")
     click.echo(f"Uptime: {_uptime(st['uptime_seconds'])}")
@@ -110,9 +130,12 @@ def add(alias, tox_id):
 
 
 @cli.command()
-def requests():
+@click.pass_context
+def requests(ctx):
     """Show pending friend requests."""
     reqs = _call("list_requests")["requests"]
+    if _emit(ctx, reqs):
+        return
     if not reqs:
         click.echo("No pending friend requests.")
         return
@@ -135,9 +158,12 @@ def accept(alias, public_key):
 
 @cli.command()
 @click.option("--online", "online_only", is_flag=True, help="Only show online contacts.")
-def contacts(online_only):
+@click.pass_context
+def contacts(ctx, online_only):
     """List your contacts."""
     cs = _call("list_contacts", {"online_only": online_only})["contacts"]
+    if _emit(ctx, cs):
+        return
     if not cs:
         click.echo("No contacts yet.")
         return
@@ -161,11 +187,14 @@ def _ago(ts: int) -> str:
 @cli.command()
 @click.argument("alias")
 @click.argument("message")
-def send(alias, message):
+@click.pass_context
+def send(ctx, alias, message):
     """Send a message: chat send <alias> <message> (use - to read from stdin)."""
     if message == "-":
         message = sys.stdin.read().rstrip("\n")
     res = _call("send_message", {"alias": alias, "body": message})
+    if _emit(ctx, res):
+        return
     if res["status"] == "sent":
         click.echo("✓ sent")
     else:
@@ -174,9 +203,13 @@ def send(alias, message):
 
 @cli.command()
 @click.argument("alias", required=False)
-def unread(alias):
+@click.pass_context
+def unread(ctx, alias):
     """Show unread messages (optionally just from one contact)."""
     msgs = _call("get_messages", {"alias": alias, "unread_only": True, "limit": 100})["messages"]
+    # --json is a programmatic peek (e.g. the Claude Code hook); it must not mark read.
+    if _emit(ctx, msgs):
+        return
     if not msgs:
         click.echo("No unread messages.")
         return
@@ -189,9 +222,12 @@ def unread(alias):
 @cli.command()
 @click.argument("alias")
 @click.option("--limit", default=20, help="How many recent messages to show.")
-def read(alias, limit):
+@click.pass_context
+def read(ctx, alias, limit):
     """Show conversation history with a contact."""
     msgs = _call("get_messages", {"alias": alias, "limit": limit})["messages"]
+    if _emit(ctx, msgs):  # programmatic peek: don't mark read
+        return
     if not msgs:
         click.echo("No messages yet.")
         return
@@ -204,9 +240,12 @@ def read(alias, limit):
 
 
 @cli.command()
-def queue():
+@click.pass_context
+def queue(ctx):
     """Show messages waiting to be delivered."""
     q = _call("list_queue")["queue"]
+    if _emit(ctx, q):
+        return
     if not q:
         click.echo("Queue is empty.")
         return
@@ -226,9 +265,12 @@ def introduce(to, whom, note):
 
 
 @cli.command()
-def introductions():
+@click.pass_context
+def introductions(ctx):
     """Show contacts other people have introduced to you."""
     intros = _call("list_introductions")["introductions"]
+    if _emit(ctx, intros):
+        return
     if not intros:
         click.echo("No introductions.")
         return
@@ -292,6 +334,23 @@ def daemon_stop():
         click.echo("daemon stopped")
     except client.DaemonNotRunning:
         click.echo("daemon is not running")
+
+
+@cli.group()
+def mcp():
+    """MCP server for Claude Code and other MCP clients."""
+
+
+@mcp.command("serve")
+def mcp_serve():
+    """Run the MCP server over stdio (used by Claude Code's .mcp.json)."""
+    from . import mcp_server
+    try:
+        mcp_server.serve()
+    except ImportError:
+        raise click.ClickException(
+            "MCP support needs the extra: pipx install 'cc-chat[mcp]'"
+        )
 
 
 if __name__ == "__main__":

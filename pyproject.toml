@@ -3,16 +3,32 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "claude-chat"
+# Distribution name (PyPI / Homebrew). The import package stays `claude_chat`
+# and the CLI commands stay `chat` / `chat-daemon` — neither needs to match this.
+name = "cc-chat"
 version = "0.1.0"
 description = "Decentralized, encrypted, asynchronous CLI chat for Claude Code, over the Tox protocol"
+readme = "README.md"
 requires-python = ">=3.10"
+authors = [{ name = "Jeffery Li", email = "zhipeng.li@gmail.com" }]
+keywords = ["tox", "chat", "p2p", "decentralized", "encrypted", "claude-code"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Communications :: Chat",
+]
 dependencies = [
     "click>=8.1",
 ]
 
+[project.urls]
+Homepage = "https://github.com/OWNER/REPO"
+Repository = "https://github.com/OWNER/REPO"
+
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+mcp = ["mcp>=1.2"]
 
 [project.scripts]
 chat = "claude_chat.cli:cli"

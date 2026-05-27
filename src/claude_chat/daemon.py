@@ -380,7 +380,7 @@ class Daemon:
     def _add_contact(self, params: dict) -> dict:
         tox_id = params.get("tox_id", "").strip().upper()
         alias = params.get("alias", "").strip()
-        request_msg = params.get("request_msg") or "Let's chat on claude-chat"
+        request_msg = params.get("request_msg") or "Let's chat on cc-chat"
         if len(tox_id) != 76 or not _is_hex(tox_id):
             raise RpcError("INVALID_TOX_ID", "Tox ID must be 76 hex characters")
         if not alias:

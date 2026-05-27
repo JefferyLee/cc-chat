@@ -1,0 +1,15 @@
+{
+  "name": "cc-chat",
+  "description": "Claude Code integration for cc-chat: decentralized, encrypted Tox messaging with unread notifications, slash commands, and MCP tools.",
+  "owner": {
+    "name": "Jeffery Li",
+    "email": "zhipeng.li@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "cc-chat",
+      "source": "./claude-code-plugin",
+      "description": "Tox-based decentralized, encrypted chat integration for Claude Code (notifications hook, slash commands, MCP tools)."
+    }
+  ]
+}

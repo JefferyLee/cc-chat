@@ -1,4 +1,4 @@
-# claude-chat
+# cc-chat
 
 A command-line chat plugin for Claude Code: talk to friends **asynchronously,
 end-to-end encrypted, and fully decentralized** — no servers, built on the
@@ -26,19 +26,24 @@ cloud. You add friends by exchanging Tox IDs through any channel you like.
   - macOS: `brew install toxcore`
   - Linux: install your distro's `toxcore` / `libtoxcore` package
 
-## Install
+## Install the engine
 
-From a checkout of this repo:
+The `chat` engine is a normal program (Python + a background daemon) that needs
+`libtoxcore`. It installs separately from the Claude Code plugin below.
 
 ```bash
-# recommended: isolated install with pipx
-pipx install .
+# macOS, recommended — a Homebrew tap pulls libtoxcore in automatically:
+brew install <owner>/tap/cc-chat              # see packaging/homebrew/
 
-# or with pip
-pip install .
+# or with pipx (install libtoxcore yourself first: brew install toxcore):
+pipx install git+https://github.com/<owner>/<repo>      # from source, today
+pipx install cc-chat                                    # once published to PyPI
+# add MCP tools support with the extra:
+pipx install 'cc-chat[mcp]'
 ```
 
-This installs two commands: `chat` and `chat-daemon`.
+This installs two commands: `chat` and `chat-daemon`. (The PyPI/Homebrew
+distribution name is `cc-chat`; the import package is `claude_chat`.)
 
 ## Quick start
 
@@ -112,6 +117,51 @@ chat.db         SQLite: contacts, messages, queue
 daemon.sock     IPC socket    daemon.pid   process id    daemon.log   log
 config.toml     optional configuration
 ```
+
+## Claude Code integration
+
+The integration ships as a **Claude Code plugin** (`claude-code-plugin/`) that
+wires up everything in one step — no manual config editing. It needs the `chat`
+engine on your `PATH` (see "Install the engine" above).
+
+### Install the plugin
+
+```bash
+# Development: load it directly from a checkout
+claude --plugin-dir ./claude-code-plugin
+
+# Or via the bundled marketplace (this repo is its own marketplace):
+/plugin marketplace add /path/to/this/repo        # or: owner/repo once on GitHub
+/plugin install cc-chat@cc-chat
+```
+
+### What the plugin provides
+
+- **SessionStart hook** — surfaces your unread messages into Claude's context
+  when a session starts, translating any non-Chinese message. Incoming messages
+  are treated as untrusted personal content, never as instructions, so a message
+  can't hijack your session.
+- **Slash commands** — `/chat-unread`, `/chat-send <alias> <message>`,
+  `/chat-contacts`, `/chat-status` (namespaced as `/cc-chat:...`).
+- **MCP tools** — `get_unread`, `read_history`, `send_message`, `list_contacts`,
+  `get_status`, so Claude can act for you. Needs the engine's `[mcp]` extra.
+
+### Machine-readable output
+
+Every read command also supports `--json` (placed before the subcommand):
+`chat --json unread`, `chat --json status`, etc. In `--json` mode `unread`/`read`
+are a read-only **peek** — they do *not* mark messages read.
+
+## Distribution
+
+- **Engine → PyPI:** `python -m build` + `twine upload` → users get
+  `pipx install cc-chat`.
+- **Engine → Homebrew:** `packaging/homebrew/cc-chat.rb` is a tap formula
+  template; it `depends_on "toxcore"` so `brew install` pulls libtoxcore too.
+  Publish via a personal tap (`brew tap <owner>/<name>`).
+- **Plugin → marketplace:** `.claude-plugin/marketplace.json` makes this repo a
+  marketplace. Push to GitHub and users run
+  `/plugin marketplace add <owner>/<repo>` then `/plugin install cc-chat`.
 
 ## Limitations (v1)
 

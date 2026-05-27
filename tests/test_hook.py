@@ -1,0 +1,50 @@
+"""Tests for the Claude Code SessionStart hook (integrations/claude-code).
+
+We point the hook at a fake `chat` (via CHAT_BIN) so the tests are fast and need
+no daemon or DHT.
+"""
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+HOOK = Path(__file__).resolve().parents[1] / "claude-code-plugin" / "hooks" / "unread_hook.py"
+
+
+def _fake_chat(tmp_path) -> str:
+    p = tmp_path / "fakechat"
+    p.write_text("#!/usr/bin/env python3\nimport os\nprint(os.environ.get('FAKE_OUT', ''))\n")
+    p.chmod(0o755)
+    return str(p)
+
+
+def _run(env_extra) -> subprocess.CompletedProcess:
+    env = dict(os.environ, **env_extra)
+    return subprocess.run([sys.executable, str(HOOK)], capture_output=True, text=True, env=env)
+
+
+def test_hook_emits_context_for_unread(tmp_path):
+    r = _run({
+        "CHAT_BIN": _fake_chat(tmp_path),
+        "FAKE_OUT": json.dumps([
+            {"alias": "bob", "content": "hello"},
+            {"alias": "carol", "content": "hola"},
+        ]),
+    })
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert out["hookSpecificOutput"]["hookEventName"] == "SessionStart"
+    ctx = out["hookSpecificOutput"]["additionalContext"]
+    assert "2 unread" in ctx
+    assert "bob: hello" in ctx and "carol: hola" in ctx
+
+
+def test_hook_silent_when_no_unread(tmp_path):
+    r = _run({"CHAT_BIN": _fake_chat(tmp_path), "FAKE_OUT": "[]"})
+    assert r.returncode == 0 and r.stdout.strip() == ""
+
+
+def test_hook_silent_when_chat_missing(tmp_path):
+    r = _run({"CHAT_BIN": "/nonexistent/chat-xyz"})
+    assert r.returncode == 0 and r.stdout.strip() == ""

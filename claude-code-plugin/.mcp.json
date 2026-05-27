@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "cc-chat": {
+      "type": "stdio",
+      "command": "chat",
+      "args": ["mcp", "serve"]
+    }
+  }
+}
