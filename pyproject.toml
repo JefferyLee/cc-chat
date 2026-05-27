@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/OWNER/REPO"
-Repository = "https://github.com/OWNER/REPO"
+Homepage = "https://github.com/JefferyLee/cc-chat"
+Repository = "https://github.com/JefferyLee/cc-chat"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]

@@ -36,7 +36,7 @@ The `chat` engine is a normal program (Python + a background daemon) that needs
 brew install <owner>/tap/cc-chat              # see packaging/homebrew/
 
 # or with pipx (install libtoxcore yourself first: brew install toxcore):
-pipx install git+https://github.com/<owner>/<repo>      # from source, today
+pipx install git+https://github.com/JefferyLee/cc-chat      # from source, today
 pipx install cc-chat                                    # once published to PyPI
 # add MCP tools support with the extra:
 pipx install 'cc-chat[mcp]'
@@ -161,7 +161,7 @@ are a read-only **peek** — they do *not* mark messages read.
   Publish via a personal tap (`brew tap <owner>/<name>`).
 - **Plugin → marketplace:** `.claude-plugin/marketplace.json` makes this repo a
   marketplace. Push to GitHub and users run
-  `/plugin marketplace add <owner>/<repo>` then `/plugin install cc-chat`.
+  `/plugin marketplace add JefferyLee/cc-chat` then `/plugin install cc-chat`.
 
 ## Limitations (v1)
 

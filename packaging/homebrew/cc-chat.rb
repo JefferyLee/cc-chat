@@ -18,7 +18,7 @@ class CcChat < Formula
   include Language::Python::Virtualenv
 
   desc "Decentralized, encrypted, asynchronous CLI chat over the Tox protocol"
-  homepage "https://github.com/OWNER/REPO"
+  homepage "https://github.com/JefferyLee/cc-chat"
   url "https://files.pythonhosted.org/packages/source/.../NAME-0.1.0.tar.gz" # TODO
   sha256 "TODO_FILL_IN_AFTER_RELEASE"
   license "TODO" # choose and add a LICENSE file
