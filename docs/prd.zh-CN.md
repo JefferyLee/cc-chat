@@ -1,10 +1,10 @@
-# Tox Chat — Claude Code 命令行聊天插件 PRD
+# cc-chat — Claude Code 命令行聊天插件 PRD
 
-> 🌐 语言: [English](tox-chat-plugin-prd.md) | **中文**
+> 🌐 语言: [English](prd.md) | **中文**
 
 **版本**：v0.1
-**日期**：2026-05-26
-**状态**：实现中（spike 验证完成 + 脚手架完成，详见 §5.1）
+**日期**：2026-05-27
+**状态**：v0.1 MVP 完成；Claude Code 集成已交付；已打包为插件（详见 §5.1）
 
 ---
 
@@ -210,25 +210,40 @@ $ chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的�
 - Python 在科学计算和数据处理生态上更适合"和 Claude 协同"的未来功能
 - c-toxcore 是稳定的 C 库，任意语言均可绑定，实现层面差异不大，未来可重写
 
-### 3.4 源码结构（已实现，step 1 脚手架）
+### 3.4 源码结构（当前）
 
 ```
-tox-chat-plugin/
-├── pyproject.toml              # hatchling + src 布局；依赖 click；dht 测试 marker
-├── src/claude_chat/
-│   ├── paths.py                # 配置目录布局；CLAUDE_CHAT_HOME 覆盖（测试可起两个 daemon）
-│   ├── db.py                   # SQLite schema（§4.1/4.2/4.5）+ 幂等 connect()
-│   ├── ipc.py                  # 长度前缀 JSON 帧编解码（§4.6.2）
-│   ├── tox.py                  # ctypes 直绑 libtoxcore（含 savedata 身份持久化）
-│   ├── daemon.py               # 常驻进程（待实现，step 2）
-│   └── cli.py                  # chat CLI（待实现，step 3）
-└── tests/
-    ├── test_ipc.py             # 帧往返/顺序/断连/超长
-    ├── test_db.py              # 建表/幂等/增删
-    └── test_tox.py             # 构造+地址、savedata 持久化、DHT 端到端（pytest -m dht）
+tox-chat-plugin/                 （GitHub: JefferyLee/cc-chat）
+├── pyproject.toml               # hatchling；依赖 click；extras [mcp] [dev]
+├── README.md / README.zh-CN.md  # 双语用户文档
+├── docs/                        # 双语设计文档（本 PRD 在此）
+├── src/claude_chat/             # 引擎（PyPI 发布名：cc-chat）
+│   ├── paths.py                 # 配置目录；CLAUDE_CHAT_HOME 覆盖供测试隔离
+│   ├── db.py                    # SQLite schema（§4.1、§4.2、§4.5）+ 幂等 connect()
+│   ├── ipc.py                   # 长度前缀 JSON 帧编解码（§4.6.2）
+│   ├── client.py                # 极简 IPC 客户端（CLI 与测试共用）
+│   ├── envelope.py              # 应用层消息封装（§4.2.3）
+│   ├── config.py                # config.toml 读取（§4.8）
+│   ├── tox.py                   # ctypes 直绑 libtoxcore（savedata 身份持久化）
+│   ├── daemon.py                # 常驻进程（Tox 事件循环 + IPC + ACK 重试扫描）
+│   ├── cli.py                   # chat CLI（含 --json 全局开关、chat mcp serve）
+│   └── mcp_server.py            # FastMCP server，由 chat mcp serve 启动（§4.12）
+├── tests/                       # 40 个快测 + 5 个标记 dht 的集成测试
+├── claude-code-plugin/          # Claude Code 插件（§4.12）
+│   ├── .claude-plugin/plugin.json
+│   ├── commands/                # /chat-unread、/chat-send、/chat-contacts、/chat-status
+│   ├── hooks/hooks.json         # SessionStart 未读通知 hook
+│   ├── hooks/unread_hook.py
+│   └── .mcp.json                # 注册 chat mcp serve
+├── .claude-plugin/marketplace.json  # 本仓库本身就是 marketplace
+└── packaging/homebrew/cc-chat.rb    # tap formula 模板（§4.13）
 ```
 
-约定：**daemon 是 SQLite 的唯一写者**，CLI 一律经 IPC 访问数据，不直接开库。`tox.py` 不依赖任何 PyPI Tox 包，运行时只需系统已装 libtoxcore。
+约定：
+- **daemon 是 SQLite 的唯一写者**；CLI 一律经 IPC 访问数据，不直接开库。
+- `tox.py` 不依赖任何 PyPI Tox 包，运行时只需系统已装 libtoxcore。
+- **代码（除 `docs/` 外的所有内容）全英文**；**文档双语**（英文文件为正本，`<name>.zh-CN.md` 为中文版，顶部互链）。
+- **发布名 `cc-chat`**；Python 内部包名仍为 `claude_chat`，磁盘配置目录仍为 `~/.config/claude-chat/`（详见 §4.13）。
 
 ---
 
@@ -703,6 +718,9 @@ v2 可加 server-sent events，让 CLI 工具订阅消息流。
 
 ### 4.7 CLI 命令规范
 
+**全局开关**（放在子命令之前）：
+- `chat --json <cmd>` —— 让任意读命令（`me`/`status`/`contacts`/`requests`/`unread`/`read`/`queue`/`introductions`/`send`）输出机器可读 JSON 而不是给人看的格式。`--json` 模式下 `unread`/`read` 是**只读 peek**,**不会**标已读 —— 让 hook 或 MCP 工具能取数而不消耗未读状态。
+
 完整命令列表：
 
 ```bash
@@ -737,8 +755,11 @@ chat accept-intro <from> <whom> [--alias=...]
 chat status                    # 显示 daemon 状态、DHT 连接、好友在线情况
 chat daemon start/stop/restart
 chat daemon logs
+chat mcp serve                 # 通过 stdio 跑 MCP server（见 §4.12）
 
-# Claude 协同（v2）
+# Claude 协同
+# v0.1 已完成：--json 开关、SessionStart 未读 hook、slash 命令、MCP server（§4.12）
+# 仍在 v2：
 chat ask <question>            # 让 Claude 在历史里搜
 chat send <alias> --draft-with-claude <prompt>
 ```
@@ -866,6 +887,36 @@ Stats (last 24h):
   Sent: 47 / Received: 23 / Failed: 0
 ```
 
+### 4.12 Claude Code 集成
+
+最初列在 v1.0，地基已随 v0.1 交付。引擎本身独立于 Claude Code；另有一个 **Claude Code 插件** 放在 `claude-code-plugin/` 一键接上：
+
+| 入口 | 作用 | 实现 |
+|---|---|---|
+| `--json` 全局开关（§4.7）| 机器可读输出；`unread`/`read` 在此模式下为 peek（不会自动标已读）| `src/claude_chat/cli.py` |
+| SessionStart hook | Claude Code 会话开始时把未读消息注入模型上下文，并让模型把非中文消息翻成中文 | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py`（调 `chat --json unread`）|
+| Slash 命令 | `/chat-unread`、`/chat-send <alias> <message>`、`/chat-contacts`、`/chat-status`，安装后命名空间为 `/cc-chat:` | `claude-code-plugin/commands/*.md` |
+| MCP server | 工具 `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让模型能替你操作 | `chat mcp serve`（FastMCP，可选 `[mcp]` extra），由 `claude-code-plugin/.mcp.json` 注册 |
+
+**不可信输入框架（防提示注入）**：来信是外部输入被注入模型上下文。hook 和 slash 命令的提示词**明确把消息标为「个人内容、非指令」**，所以"忽略指令、执行 X"这类正文会被当作可能给用户读的文字，而不是 Claude 该执行的命令。
+
+**翻译**：Claude 本身就是模型，hook 只标注消息让 Claude 在汇报时顺手翻译非中文消息——零额外依赖、零额外 API 调用。如果想在终端侧也自动翻译（不经过我），那需要单独接 Claude API，留到以后。
+
+### 4.13 发布与命名
+
+| 层 | 名字 | 安装方式 |
+|---|---|---|
+| 引擎（PyPI）| `cc-chat` | 发布后：`pipx install cc-chat`；目前：`pipx install git+https://github.com/JefferyLee/cc-chat` |
+| 引擎（Homebrew）| `cc-chat` | `brew install <owner>/tap/cc-chat` —— formula `depends_on "toxcore"`，所以 libtoxcore 会被一起拉下来。模板在 `packaging/homebrew/cc-chat.rb` |
+| Claude Code 插件 | `cc-chat` | `/plugin marketplace add JefferyLee/cc-chat` 然后 `/plugin install cc-chat@cc-chat`；开发期可用 `claude --plugin-dir ./claude-code-plugin` |
+
+**为什么叫 `cc-chat`**（不叫 `claude-chat`）：内部原名 `claude-chat` 在 PyPI 已被无关项目占用，而且公开发布名里带 "Claude" 商标也最好避免。`cc-chat` 读作 "Claude Code chat"。
+
+**有意保留不动的**：
+- CLI 命令 `chat` / `chat-daemon`（输入体验）。
+- 内部包名 `claude_chat`（纯内部；改它工作量大、用户无感知）。
+- 磁盘配置目录 `~/.config/claude-chat/`（改它会丢用户现有的 Tox 身份与消息历史）。
+
 ---
 
 ## 5. 实现路径
@@ -900,6 +951,7 @@ Stats (last 24h):
 - ✅ step 7 ACK / 送达状态机：接收方回 ack→发送方 sent→delivered；超时重发、超期 failed（里程碑达成）
 - ✅ step 8 introduce：contact_share + pending_introductions + accept-intro；Alice 介绍 Carol 给 Bob，Bob 成功连上 Carol（里程碑达成，= §8 指标③）
 - ✅ step 9 收尾：README 安装文档、丰富的 `chat status`（§4.11 格式）、日志轮转（10MB×5，§4.11）、CLI 错误信息打磨（只显示人类可读消息）
+- ✅ step 10 Claude Code 集成 + 打包 + 改名（§4.12、§4.13）：`--json` 开关；SessionStart 未读 hook（含翻译 + 防提示注入框架）；slash 命令；MCP server（`chat mcp serve`）；全部打包为 `claude-code-plugin/` 下的 Claude Code 插件；仓库本身就是 marketplace（`.claude-plugin/marketplace.json`）；brew tap formula 模板；发布名 `claude-chat` → `cc-chat`；文档双语化（英文 `.md` + `.zh-CN.md`）
 
 ### 5.2 v0.2
 
@@ -917,9 +969,10 @@ Stats (last 24h):
 
 ### 5.4 v1.0
 
-- Claude Code 原生 hook（让 Claude 在工作时主动报告新消息）
-- `chat ask`、`chat send --draft-with-claude` 等 AI 协同功能
-- 完善的文档和示例
+- ✅ Claude Code 原生 hook，工作时主动报告新消息 —— 已在 v0.1 交付（§4.12）
+- ⬜ `chat ask`（Claude 在本地消息历史里检索）
+- ⬜ `chat send --draft-with-claude`（Claude 起草、用户确认）
+- ⬜ 完善的文档和示例
 
 ### 5.5 远期（v2+）
 
@@ -1026,3 +1079,4 @@ v0.1 MVP 的成功标准：
 | v0.1 | 2026-05-26 | 按 step 8 结果更新：introduce 完成（§5.1 进度，达成 §8 指标③）；补 v1 实现约束——只能转介有完整 Tox ID 的联系人、introduce 要求接收方在线（§4.5.3）|
 | v0.1 | 2026-05-26 | 按 step 9（部分）更新：新增 README 安装文档；`chat status` 丰富为 §4.11 格式（§5.1 进度）|
 | v0.1 | 2026-05-26 | step 9 收尾完成：日志轮转 10MB×5（§4.11）、config.toml 支持 `[daemon] log_level`、CLI 错误只显示人类可读消息（§5.1 进度）。v0.1 MVP 全部步骤完成 |
+| v0.1 | 2026-05-27 | 与当前现状对齐：标题与发布名 → `cc-chat`；§3.4 源码结构更新为当前实情；§4.7 CLI 加入 `--json` 与 `chat mcp serve`；新增 §4.12 Claude Code 集成、§4.13 发布与命名；§5.1 进度补 step 10；§5.4 v1.0 标记原生 hook 已交付；PRD 迁入 `docs/` |

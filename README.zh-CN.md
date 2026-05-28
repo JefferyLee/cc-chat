@@ -4,7 +4,7 @@
 
 一款嵌入 Claude Code 的命令行聊天插件：在写代码的同时，与朋友进行**异步、端到端加密、完全去中心化**的文字沟通——无需任何服务器，基于 [Tox](https://tox.chat) 协议。消息默默等着，你想看的时候再看。
 
-> 状态：v0.1，macOS 优先。完整设计见 [PRD](tox-chat-plugin-prd.zh-CN.md)。
+> 状态：v0.1，macOS 优先。完整设计见 [PRD](docs/prd.zh-CN.md)。
 
 ## 工作原理
 

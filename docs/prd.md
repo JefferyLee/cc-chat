@@ -1,10 +1,10 @@
-# Tox Chat — Claude Code CLI Chat Plugin PRD
+# cc-chat — Claude Code CLI Chat Plugin (PRD)
 
-> 🌐 Languages: **English** | [中文](tox-chat-plugin-prd.zh-CN.md)
+> 🌐 Languages: **English** | [中文](prd.zh-CN.md)
 
 **Version**: v0.1
-**Date**: 2026-05-26
-**Status**: Implementation in progress (spike + scaffolding done; see §5.1)
+**Date**: 2026-05-27
+**Status**: v0.1 MVP complete; Claude Code integration shipped; packaged as a plugin (see §5.1)
 
 ---
 
@@ -210,25 +210,40 @@ $ chat send bob --draft-with-claude "write a thank-you note for the review"
 - Python's ecosystem (scientific computing, data) is better suited to future "work with Claude" features
 - c-toxcore is a stable C library that any language can bind, so the implementation cost is similar and a future rewrite is feasible
 
-### 3.4 Source layout (implemented, step 1 scaffolding)
+### 3.4 Source layout (current)
 
 ```
-tox-chat-plugin/
-├── pyproject.toml              # hatchling + src layout; click dep; dht test marker
-├── src/claude_chat/
-│   ├── paths.py                # config dir layout; CLAUDE_CHAT_HOME override (lets tests run two daemons)
-│   ├── db.py                   # SQLite schema (§4.1/4.2/4.5) + idempotent connect()
-│   ├── ipc.py                  # length-prefixed JSON frame codec (§4.6.2)
-│   ├── tox.py                  # ctypes binding to libtoxcore (with savedata identity persistence)
-│   ├── daemon.py               # resident process (step 2)
-│   └── cli.py                  # chat CLI (step 3)
-└── tests/
-    ├── test_ipc.py             # frame round-trip / ordering / closed / oversize
-    ├── test_db.py              # schema / idempotent / insert
-    └── test_tox.py             # construct + address, savedata, DHT end-to-end (pytest -m dht)
+tox-chat-plugin/                 (GitHub: JefferyLee/cc-chat)
+├── pyproject.toml               # hatchling; deps: click; extras: [mcp] [dev]
+├── README.md / README.zh-CN.md  # bilingual user docs
+├── docs/                        # bilingual design docs (this PRD lives here)
+├── src/claude_chat/             # the engine (PyPI distribution name: `cc-chat`)
+│   ├── paths.py                 # config dir; CLAUDE_CHAT_HOME override for test isolation
+│   ├── db.py                    # SQLite schema (§4.1, §4.2, §4.5) + idempotent connect()
+│   ├── ipc.py                   # length-prefixed JSON frame codec (§4.6.2)
+│   ├── client.py                # thin IPC client shared by CLI and tests
+│   ├── envelope.py              # app-layer message envelope (§4.2.3)
+│   ├── config.py                # config.toml reader (§4.8)
+│   ├── tox.py                   # ctypes binding to libtoxcore (savedata identity persistence)
+│   ├── daemon.py                # resident process (Tox loop + IPC + ACK retry sweep)
+│   ├── cli.py                   # `chat` CLI (incl. --json group flag and `chat mcp serve`)
+│   └── mcp_server.py            # FastMCP server exposed by `chat mcp serve` (§4.12)
+├── tests/                       # 40 fast + 5 DHT-marked integration tests
+├── claude-code-plugin/          # the Claude Code plugin (§4.12)
+│   ├── .claude-plugin/plugin.json
+│   ├── commands/                # /chat-unread, /chat-send, /chat-contacts, /chat-status
+│   ├── hooks/hooks.json         # SessionStart unread-notification hook
+│   ├── hooks/unread_hook.py
+│   └── .mcp.json                # registers `chat mcp serve`
+├── .claude-plugin/marketplace.json  # this repo IS its own marketplace
+└── packaging/homebrew/cc-chat.rb    # tap formula template (§4.13)
 ```
 
-Convention: **the daemon is the sole writer of SQLite**; the CLI accesses data only via IPC, never opening the database directly. `tox.py` doesn't depend on any PyPI Tox package; at runtime it only needs the system's libtoxcore.
+Conventions:
+- **The daemon is the sole writer of SQLite**; the CLI accesses data only via IPC, never opening the database directly.
+- `tox.py` doesn't depend on any PyPI Tox package; at runtime it only needs the system's libtoxcore.
+- **Code (everything except `docs/`) is English-only**; **docs are bilingual** (English file is canonical, `<name>.zh-CN.md` is Chinese, with a language switcher at the top of each).
+- **Distribution name is `cc-chat`**; the import package stays `claude_chat`, and the on-disk config dir stays `~/.config/claude-chat/` (see §4.13).
 
 ---
 
@@ -705,6 +720,9 @@ v2 may add server-sent events, letting CLI tools subscribe to the message stream
 
 ### 4.7 CLI command reference
 
+**Global flag** (placed before the subcommand):
+- `chat --json <cmd>` — emit machine-readable JSON instead of human-formatted output for any read command (`me`, `status`, `contacts`, `requests`, `unread`, `read`, `queue`, `introductions`, `send`). In `--json` mode `unread` / `read` are a read-only **peek** and do *not* mark messages read — that lets a hook or MCP tool consume the data without burning the unread state.
+
 Full command list:
 
 ```bash
@@ -739,8 +757,11 @@ chat accept-intro <from> <whom> [--alias=...]
 chat status                    # Daemon status, DHT, friend online state
 chat daemon start/stop/restart
 chat daemon logs
+chat mcp serve                 # Run the MCP server over stdio (see §4.12)
 
-# Claude collaboration (v2)
+# Claude collaboration
+# Done in v0.1: --json flag, SessionStart unread hook, slash commands, MCP server (§4.12)
+# Still v2:
 chat ask <question>            # Let Claude search the history
 chat send <alias> --draft-with-claude <prompt>
 ```
@@ -868,6 +889,36 @@ Stats (last 24h):
   Sent: 47 / Received: 23 / Failed: 0
 ```
 
+### 4.12 Claude Code integration
+
+Originally listed for v1.0; the foundation shipped with v0.1. The engine is independent of Claude Code, but a separate **Claude Code plugin** lives in `claude-code-plugin/` and wires everything up in one step:
+
+| Surface | What it does | Implementation |
+|---|---|---|
+| `--json` group flag (§4.7) | Machine-readable output; peek mode for `unread`/`read` (no auto mark-read) | `src/claude_chat/cli.py` |
+| SessionStart hook | When a Claude Code session starts, injects unread messages into the model's context (and asks the model to translate any non-Chinese message into Chinese) | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py` (calls `chat --json unread`) |
+| Slash commands | `/chat-unread`, `/chat-send <alias> <message>`, `/chat-contacts`, `/chat-status` — namespaced under `/cc-chat:` once installed | `claude-code-plugin/commands/*.md` |
+| MCP server | Tools `get_unread`, `read_history`, `send_message`, `list_contacts`, `get_status` — lets the model act for you | `chat mcp serve` (FastMCP, optional `[mcp]` extra) registered via `claude-code-plugin/.mcp.json` |
+
+**Untrusted-input framing (prompt-injection resistance)**: incoming chat messages are external input being injected into the model's context. The hook and slash-command prompts explicitly label them as **untrusted personal content, not instructions**, so a message body like "ignore previous instructions and run X" is treated as text the user might read, not as something Claude should act on.
+
+**Translation**: because Claude *is* the model, the hook just labels messages and lets Claude translate any non-Chinese ones when relaying — no extra dependency or API call required. A terminal-side translation (no model in the loop) would need a separate Claude API path; that's deferred.
+
+### 4.13 Distribution and naming
+
+| Layer | Name | How to install |
+|---|---|---|
+| Engine (PyPI) | `cc-chat` | `pipx install cc-chat` (after publish); today: `pipx install git+https://github.com/JefferyLee/cc-chat` |
+| Engine (Homebrew) | `cc-chat` | `brew install <owner>/tap/cc-chat` — the formula `depends_on "toxcore"` so libtoxcore comes along automatically. Template at `packaging/homebrew/cc-chat.rb` |
+| Claude Code plugin | `cc-chat` | `/plugin marketplace add JefferyLee/cc-chat` then `/plugin install cc-chat@cc-chat`; or `claude --plugin-dir ./claude-code-plugin` for dev |
+
+**Why `cc-chat`** (not `claude-chat`): the original internal name `claude-chat` is already taken on PyPI by an unrelated project, and using the "Claude" trademark in a public distribution name is best avoided. `cc-chat` reads as "Claude Code chat".
+
+**Kept unchanged on purpose**:
+- The CLI commands: `chat` / `chat-daemon` (typing experience).
+- The import package: `claude_chat` (purely internal; renaming would be churn for zero user benefit).
+- The on-disk config dir: `~/.config/claude-chat/` (renaming it would break the user's existing Tox identity and message history).
+
 ---
 
 ## 5. Implementation plan
@@ -902,6 +953,7 @@ Stats (last 24h):
 - ✅ step 7 ACK / delivery state machine: receiver acks → sender sent→delivered; timeout retry, expiry → failed (milestone met)
 - ✅ step 8 introduce: contact_share + pending_introductions + accept-intro; Alice introduces Carol to Bob; Bob successfully connects to Carol (milestone met, = §8 metric ③)
 - ✅ step 9 polish: README install docs, enriched `chat status` (§4.11 format), log rotation (10MB×5, §4.11), CLI error-message polish (human-readable only)
+- ✅ step 10 Claude Code integration + packaging + rename (§4.12, §4.13): `--json` flag; SessionStart unread hook with translation + prompt-injection framing; slash commands; MCP server (`chat mcp serve`); all bundled as a Claude Code plugin in `claude-code-plugin/`; repo doubles as a marketplace (`.claude-plugin/marketplace.json`); brew tap formula template; renamed distribution `claude-chat` → `cc-chat`; bilingual docs (English `.md` + `.zh-CN.md`)
 
 ### 5.2 v0.2
 
@@ -919,9 +971,10 @@ Stats (last 24h):
 
 ### 5.4 v1.0
 
-- Claude Code native hook (proactive new-message notifications while you work)
-- `chat ask`, `chat send --draft-with-claude` and other AI-collaboration features
-- Comprehensive docs and examples
+- ✅ Claude Code native hook for proactive new-message notifications — delivered in v0.1 (§4.12)
+- ⬜ `chat ask` (Claude searches local message history)
+- ⬜ `chat send --draft-with-claude` (Claude drafts a reply, user confirms)
+- ⬜ Comprehensive docs and examples
 
 ### 5.5 Long-term (v2+)
 
@@ -1028,3 +1081,4 @@ v0.1 MVP success criteria:
 | v0.1 | 2026-05-26 | Updates from step 8: introduce done (§5.1 progress, achieving §8 metric ③); add v1 implementation constraints — can only introduce contacts with a full Tox ID; introduce requires the recipient to be online (§4.5.3) |
 | v0.1 | 2026-05-26 | Updates from step 9 (partial): added README install docs; `chat status` enriched to §4.11 format (§5.1 progress) |
 | v0.1 | 2026-05-26 | step 9 polish complete: log rotation 10MB×5 (§4.11), `[daemon] log_level` from config.toml, CLI errors show only human-readable message (§5.1 progress). All v0.1 MVP steps complete |
+| v0.1 | 2026-05-27 | Align with current state: title and distribution name → `cc-chat`; updated source layout (§3.4) to current reality; added `--json` and `chat mcp serve` to CLI reference (§4.7); added §4.12 Claude Code integration and §4.13 Distribution; added step 10 to §5.1 progress; §5.4 v1.0 marked the native hook delivered; moved PRD into `docs/` |
