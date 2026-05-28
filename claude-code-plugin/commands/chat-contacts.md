@@ -1,10 +1,10 @@
 ---
 description: List your cc-chat contacts and who is online
-allowed-tools: Bash(chat *)
+allowed-tools: Bash(cc-chat *)
 ---
 
 Your cc-chat contacts:
 
-!`chat contacts`
+!`cc-chat contacts`
 
 Summarize for me who is online right now.
