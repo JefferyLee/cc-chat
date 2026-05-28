@@ -1,5 +1,7 @@
 # cc-chat
 
+> 🌐 Languages: **English** | [中文](README.zh-CN.md)
+
 A command-line chat plugin for Claude Code: talk to friends **asynchronously,
 end-to-end encrypted, and fully decentralized** — no servers, built on the
 [Tox](https://tox.chat) protocol. Messages wait quietly until you look at them.

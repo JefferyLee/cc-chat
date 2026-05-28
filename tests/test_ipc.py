@@ -7,7 +7,7 @@ from claude_chat import ipc
 
 def test_roundtrip():
     a, b = socket.socketpair()
-    obj = {"id": "req-001", "method": "send_message", "params": {"alias": "bob", "body": "你好"}}
+    obj = {"id": "req-001", "method": "send_message", "params": {"alias": "bob", "body": "héllo 🌍"}}
     ipc.send_message(a, obj)
     assert ipc.recv_message(b) == obj
 

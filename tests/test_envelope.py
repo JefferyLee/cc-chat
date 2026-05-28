@@ -2,10 +2,11 @@ from claude_chat import envelope
 
 
 def test_text_roundtrip():
-    env = envelope.make_text("你好 bob")
+    body = "héllo 🌍 bob"  # intentionally multibyte UTF-8
+    env = envelope.make_text(body)
     parsed = envelope.parse(envelope.encode(env))
     assert parsed["type"] == "text"
-    assert parsed["data"]["body"] == "你好 bob"
+    assert parsed["data"]["body"] == body
     assert parsed["uuid"] == env["uuid"]
 
 
