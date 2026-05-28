@@ -31,8 +31,8 @@ dev = ["pytest>=8.0"]
 mcp = ["mcp>=1.2"]
 
 [project.scripts]
-chat = "claude_chat.cli:cli"
-chat-daemon = "claude_chat.daemon:main"
+cc-chat = "claude_chat.cli:cli"
+cc-chat-daemon = "claude_chat.daemon:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/claude_chat"]

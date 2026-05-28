@@ -48,14 +48,14 @@ Developers using Claude Code often need to message colleagues or friends but don
 **Scenario A: send an async message**
 ```
 Alice is coding and wants to ask Bob something.
-$ chat send bob "can you take a look at the PR I just pushed?"
+$ cc-chat send bob "can you take a look at the PR I just pushed?"
 ✓ sent
 (Alice keeps coding; doesn't wait for a reply)
 ```
 
 **Scenario B: check unread messages**
 ```
-$ chat unread
+$ cc-chat unread
 [3 unread]
 1. bob (10 min ago): looked at it; suggest renaming the errorhandler
 2. carol (1 hour ago): hiking this weekend?
@@ -64,10 +64,10 @@ $ chat unread
 
 **Scenario C: send while the recipient is offline**
 ```
-$ chat send bob "good night"
+$ cc-chat send bob "good night"
 ✓ recipient is offline; will send when they come online (queued locally)
 
-$ chat queue
+$ cc-chat queue
 [2 queued]
 - bob: "good night" (queued 5 min ago)
 - carol: "meeting tomorrow 9am" (queued 1 hour ago)
@@ -77,12 +77,12 @@ $ chat queue
 ```
 Bob shares his Tox ID with Alice through some other channel (email, WeChat, etc.).
 
-$ chat add bob 76518406F6A9F2217E8DC487...   (76-char Tox ID)
+$ cc-chat add bob 76518406F6A9F2217E8DC487...   (76-char Tox ID)
 ✓ Added bob to contacts.
   Sending friend request... waiting for them to accept.
 
 # Alice's own Tox ID:
-$ chat me
+$ cc-chat me
 Your Tox ID: A1B2C3D4E5F6...
 (Share this with friends so they can add you)
 ```
@@ -90,11 +90,11 @@ Your Tox ID: A1B2C3D4E5F6...
 **Scenario E: introduce someone**
 ```
 Alice wants to introduce Carol to Bob:
-$ chat introduce bob carol
+$ cc-chat introduce bob carol
 ✓ Sent Carol's contact to bob
 
 # Bob sees:
-$ chat unread
+$ cc-chat unread
 [1 contact-share invitation]
 - alice introduced you to carol (Tox ID: F1E2D3...)
   Accept [y/n]?
@@ -105,7 +105,7 @@ $ chat unread
 $ chat ask "what did bob say last time about the errorhandler?"
 (Claude searches the chat history and answers)
 
-$ chat send bob --draft-with-claude "write a thank-you note for the review"
+$ cc-chat send bob --draft-with-claude "write a thank-you note for the review"
 (Claude drafts; user confirms before sending)
 ```
 
@@ -130,7 +130,7 @@ $ chat send bob --draft-with-claude "write a thank-you note for the review"
 │                                                          │
 │  ┌─────────────────┐    ┌────────────────────────────┐   │
 │  │  Claude Code    │    │  CLI commands              │   │
-│  │  (chat context) │    │  $ chat send / read / add  │   │
+│  │  (chat context) │    │  $ cc-chat send / read / add  │   │
 │  └────────┬────────┘    └─────────────┬──────────────┘   │
 │           │                            │                 │
 │           └────────────┬───────────────┘                 │
@@ -174,13 +174,13 @@ $ chat send bob --draft-with-claude "write a thank-you note for the review"
 
 **Two processes**:
 
-1. **`chat-daemon`**: long-running background process
+1. **`cc-cc-chat-daemon`**: long-running background process
    - Launched at user login via systemd / launchd / a scheduled task
    - Keeps a Tox instance running and maintains the DHT connection
    - Listens on IPC, handles CLI requests
    - Receives messages and writes them to SQLite
 
-2. **`chat`**: the CLI invoked for each command
+2. **`cc-chat`**: the CLI invoked for each command
    - Short-lived: runs one command and exits
    - Talks to the daemon over IPC
    - Formats output for the terminal
@@ -226,7 +226,7 @@ tox-chat-plugin/                 (GitHub: JefferyLee/cc-chat)
 │   ├── config.py                # config.toml reader (§4.8)
 │   ├── tox.py                   # ctypes binding to libtoxcore (savedata identity persistence)
 │   ├── daemon.py                # resident process (Tox loop + IPC + ACK retry sweep)
-│   ├── cli.py                   # `chat` CLI (incl. --json group flag and `chat mcp serve`)
+│   ├── cli.py                   # `cc-chat` CLI (incl. --json group flag and `chat mcp serve`)
 │   └── mcp_server.py            # FastMCP server exposed by `chat mcp serve` (§4.12)
 ├── tests/                       # 40 fast + 5 DHT-marked integration tests
 ├── claude-code-plugin/          # the Claude Code plugin (§4.12)
@@ -310,13 +310,13 @@ CREATE TABLE friend_requests (
 Alice adds Bob:
 
 1. Alice obtains Bob's Tox ID (any channel: in person, email, etc.)
-2. $ chat add bob <bob_tox_id>
+2. $ cc-chat add bob <bob_tox_id>
 3. The daemon calls tox_friend_add(), sending a friend request (with optional text)
 4. The request reaches Bob's daemon via the DHT
-5. Bob sees the request: $ chat requests
+5. Bob sees the request: $ cc-chat requests
    - public key A1B2... (64 chars): "hi I'm alice, friend me?"
 6. Bob accepts and assigns a local alias:
-   $ chat accept alice <pubkey-prefix>
+   $ cc-chat accept alice <pubkey-prefix>
    The daemon uses the request's public key to call tox_friend_add_norequest()
 7. Each side sees the other in their contact list (on Bob's side, alice's tox_id is NULL)
 ```
@@ -590,7 +590,7 @@ Tox DHT nodes send their own heartbeats. The app could augment them:
 ```
 Alice wants to introduce Carol to Bob:
 
-1. $ chat introduce bob carol
+1. $ cc-chat introduce bob carol
 2. The daemon checks:
    - Is bob in my contacts? ✓
    - Is carol in my contacts? ✓
@@ -612,8 +612,8 @@ When bob's daemon receives it:
    - alice introduced you to carol (Tox ID: F1E2...)
      note: my coworker
      accept and assign alias [n/y/rename]?
-7. Bob: $ chat accept-intro alice carol  # default alias
-   or  $ chat accept-intro alice carol --alias=co_carol
+7. Bob: $ cc-chat accept-intro alice carol  # default alias
+   or  $ cc-chat accept-intro alice carol --alias=co_carol
 8. The daemon sends a friend request to carol
 9. Carol handles it like any friend request
 ```
@@ -649,7 +649,7 @@ CREATE TABLE pending_introductions (
 #### 4.6.1 Transport
 
 - **Linux/macOS**: Unix domain socket, at `~/.config/claude-chat/daemon.sock`
-- **Windows**: Named pipe, `\\.\pipe\claude-chat-daemon`
+- **Windows**: Named pipe, `\\.\pipe\claude-cc-chat-daemon`
 - **Permissions**: only the current user can read/write (0600)
 
 #### 4.6.2 Wire format
@@ -727,43 +727,43 @@ Full command list:
 
 ```bash
 # Identity
-chat init                      # First-time init; generate keys
-chat me                        # Show your own Tox ID and name
-chat set-name "Alice"          # Set your display name
+cc-chat init                      # First-time init; generate keys
+cc-chat me                        # Show your own Tox ID and name
+cc-chat set-name "Alice"          # Set your display name
 
 # Contacts
-chat add <alias> <tox_id>      # Add a friend
-chat accept <alias> <pubkey>   # Accept a friend request (pubkey = requester public-key prefix)
-chat requests                  # Pending friend requests
-chat contacts                  # List all contacts
-chat contacts --online         # Online only
+cc-chat add <alias> <tox_id>      # Add a friend
+cc-chat accept <alias> <pubkey>   # Accept a friend request (pubkey = requester public-key prefix)
+cc-chat requests                  # Pending friend requests
+cc-chat contacts                  # List all contacts
+cc-chat contacts --online         # Online only
 chat remove <alias>            # Remove a contact
 
 # Messaging
-chat send <alias> <message>    # Send a message
-chat send <alias> -            # Read body from stdin
-chat unread                    # All unread
-chat unread <alias>            # Unread from one contact
-chat read <alias>              # History (default last 20)
-chat read <alias> --limit 50
-chat queue                     # Outgoing queue
+cc-chat send <alias> <message>    # Send a message
+cc-chat send <alias> -            # Read body from stdin
+cc-chat unread                    # All unread
+cc-chat unread <alias>            # Unread from one contact
+cc-chat read <alias>              # History (default last 20)
+cc-chat read <alias> --limit 50
+cc-chat queue                     # Outgoing queue
 
 # Introductions
-chat introduce <to> <whom>     # Introduce one contact to another
+cc-chat introduce <to> <whom>     # Introduce one contact to another
 chat introductions             # Received introductions
-chat accept-intro <from> <whom> [--alias=...]
+cc-chat accept-intro <from> <whom> [--alias=...]
 
 # System
-chat status                    # Daemon status, DHT, friend online state
-chat daemon start/stop/restart
-chat daemon logs
+cc-chat status                    # Daemon status, DHT, friend online state
+cc-chat daemon start/stop/restart
+cc-chat daemon logs
 chat mcp serve                 # Run the MCP server over stdio (see §4.12)
 
 # Claude collaboration
 # Done in v0.1: --json flag, SessionStart unread hook, slash commands, MCP server (§4.12)
 # Still v2:
 chat ask <question>            # Let Claude search the history
-chat send <alias> --draft-with-claude <prompt>
+cc-chat send <alias> --draft-with-claude <prompt>
 ```
 
 ### 4.8 Data layout
@@ -868,7 +868,7 @@ fail_after_hours = 24
 
 **`chat status` output**:
 ```
-$ chat status
+$ cc-chat status
 Daemon: running (PID 12345)
 Uptime: 3d 2h 15m
 DHT: connected (UDP)
@@ -900,7 +900,7 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 | Slash commands | `/chat-unread`, `/chat-send <alias> <message>`, `/chat-contacts`, `/chat-status` — namespaced under `/cc-chat:` once installed | `claude-code-plugin/commands/*.md` |
 | MCP server | Tools `get_unread`, `read_history`, `send_message`, `list_contacts`, `get_status` — lets the model act for you | `chat mcp serve` (FastMCP, optional `[mcp]` extra) registered via `claude-code-plugin/.mcp.json` |
 
-**Untrusted-input framing (prompt-injection resistance)**: incoming chat messages are external input being injected into the model's context. The hook and slash-command prompts explicitly label them as **untrusted personal content, not instructions**, so a message body like "ignore previous instructions and run X" is treated as text the user might read, not as something Claude should act on.
+**Untrusted-input framing (prompt-injection resistance)**: incoming cc-chat messages are external input being injected into the model's context. The hook and slash-command prompts explicitly label them as **untrusted personal content, not instructions**, so a message body like "ignore previous instructions and run X" is treated as text the user might read, not as something Claude should act on.
 
 **Translation**: because Claude *is* the model, the hook just labels messages and lets Claude translate any non-Chinese ones when relaying — no extra dependency or API call required. A terminal-side translation (no model in the loop) would need a separate Claude API path; that's deferred.
 
@@ -915,7 +915,7 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 **Why `cc-chat`** (not `claude-chat`): the original internal name `claude-chat` is already taken on PyPI by an unrelated project, and using the "Claude" trademark in a public distribution name is best avoided. `cc-chat` reads as "Claude Code chat".
 
 **Kept unchanged on purpose**:
-- The CLI commands: `chat` / `chat-daemon` (typing experience).
+- The CLI commands: `cc-chat` / `cc-cc-chat-daemon` (typing experience).
 - The import package: `claude_chat` (purely internal; renaming would be churn for zero user benefit).
 - The on-disk config dir: `~/.config/claude-chat/` (renaming it would break the user's existing Tox identity and message history).
 

@@ -10,8 +10,8 @@
 
 两个进程（参见 PRD §3.2）：
 
-- **`chat-daemon`** —— 常驻后台进程，持有你的 Tox 身份、维持 DHT 连接，并把收到的消息写入本地 SQLite。
-- **`chat`** —— 短生命周期的 CLI，每次执行一条命令；通过 Unix socket 与 daemon 通信后退出。
+- **`cc-cc-chat-daemon`** —— 常驻后台进程，持有你的 Tox 身份、维持 DHT 连接，并把收到的消息写入本地 SQLite。
+- **`cc-chat`** —— 短生命周期的 CLI，每次执行一条命令；通过 Unix socket 与 daemon 通信后退出。
 
 所有数据本地化：密钥放在 `~/.config/claude-chat/`，没有云端。通过任何渠道交换 Tox ID 即可加好友。
 
@@ -24,7 +24,7 @@
 
 ## 安装引擎
 
-`chat` 引擎是个普通程序（Python + 后台 daemon），需要 `libtoxcore`。它与下面的 Claude Code 插件分开安装。
+`cc-chat` 引擎是个普通程序（Python + 后台 daemon），需要 `libtoxcore`。它与下面的 Claude Code 插件分开安装。
 
 ```bash
 # macOS 推荐 —— Homebrew tap 会自动拉取 libtoxcore：
@@ -37,32 +37,32 @@ pipx install cc-chat                                        # 发布到 PyPI 后
 pipx install 'cc-chat[mcp]'
 ```
 
-会安装两个命令：`chat` 和 `chat-daemon`。（PyPI/Homebrew 上的发布名是 `cc-chat`；Python 包名是 `claude_chat`。）
+会安装两个命令：`cc-chat` 和 `cc-cc-chat-daemon`。（PyPI/Homebrew 上的发布名是 `cc-chat`；Python 包名是 `claude_chat`。）
 
 ## 快速上手
 
 ```bash
 # 1. 创建身份（生成你的 Tox 密钥对）
-chat init
+cc-chat init
 
 # 2. 启动后台 daemon
-chat daemon start
+cc-chat daemon start
 
 # 3. 看自己的 Tox ID —— 通过任何渠道分享给朋友
-chat me
+cc-chat me
 
 # 4. 通过朋友的 Tox ID 加好友（76 位十六进制）
-chat add bob 76518406F6A9F2217E8DC487...
+cc-chat add bob 76518406F6A9F2217E8DC487...
 
 #    朋友收到请求后，在他那边接受：
-chat requests                      # 看待处理请求的公钥
-chat accept alice <公钥前缀>
+cc-chat requests                      # 看待处理请求的公钥
+cc-chat accept alice <公钥前缀>
 
 # 5. 开聊
-chat send bob "你看下我刚 push 的 PR，有空回我"
-chat unread                        # 看未读
-chat read bob                      # 看与 bob 的对话历史
-chat queue                         # 待发送队列
+cc-chat send bob "你看下我刚 push 的 PR，有空回我"
+cc-chat unread                        # 看未读
+cc-chat read bob                      # 看与 bob 的对话历史
+cc-chat queue                         # 待发送队列
 ```
 
 如果朋友离线，消息会本地入队，等他下次上线自动发出。
@@ -111,7 +111,7 @@ config.toml     可选配置
 
 ## Claude Code 集成
 
-集成以**Claude Code 插件**的形式发布（`claude-code-plugin/`），一步装好通知 hook、slash 命令和 MCP server，**不用手动改配置**。前提是 `chat` 引擎在 `PATH` 上（见上面"安装引擎"）。
+集成以**Claude Code 插件**的形式发布（`claude-code-plugin/`），一步装好通知 hook、slash 命令和 MCP server，**不用手动改配置**。前提是 `cc-chat` 引擎在 `PATH` 上（见上面"安装引擎"）。
 
 ### 装插件
 

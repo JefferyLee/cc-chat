@@ -6,7 +6,7 @@ A practical, copy-pasteable manual. For an overview, see the [README](../README.
 
 cc-chat has **two pieces** you install separately:
 
-1. **The engine** (the `chat` and `chat-daemon` commands + a background daemon + libtoxcore).
+1. **The engine** (the `cc-chat` and `cc-cc-chat-daemon` commands + a background daemon + libtoxcore).
 2. **The Claude Code plugin** (slash commands, an unread-notification hook, an MCP server) — optional, but it's the whole point of the project.
 
 ---
@@ -30,7 +30,7 @@ brew install toxcore
 
 # 2) Make sure pipx is available
 brew install pipx
-pipx ensurepath          # then restart your shell so `chat` is on PATH
+pipx ensurepath          # then restart your shell so `cc-chat` is on PATH
 
 # 3) Install cc-chat from the GitHub repo
 pipx install git+https://github.com/JefferyLee/cc-chat
@@ -57,11 +57,11 @@ pipx install git+https://github.com/JefferyLee/cc-chat
 ### 2.3 Verify
 
 ```bash
-chat --help                   # should list all subcommands
-chat-daemon --help            # same daemon, runnable directly
+cc-chat --help                   # should list all subcommands
+cc-chat-daemon --help            # same daemon, runnable directly
 ```
 
-If `chat` isn't found, run `pipx ensurepath` and start a new shell.
+If `cc-chat` isn't found, run `pipx ensurepath` and start a new shell.
 
 ---
 
@@ -69,20 +69,20 @@ If `chat` isn't found, run `pipx ensurepath` and start a new shell.
 
 ```bash
 # Generate your identity (a Curve25519 key pair). Once-only.
-chat init
+cc-chat init
 
 # Start the background daemon.
-chat daemon start
+cc-chat daemon start
 
 # See your own Tox ID — this is the 76-char string you share with friends
 # (over any channel: chat app, email, in person).
-chat me
+cc-chat me
 
 # Optional: set a display name your friends will see.
-chat set-name "Alice"
+cc-chat set-name "Alice"
 
 # After about 10–40 seconds the DHT should connect.
-chat status     # "DHT: connected (UDP)" or "(TCP)" when ready
+cc-chat status     # "DHT: connected (UDP)" or "(TCP)" when ready
 ```
 
 `chat init` and the first `chat daemon start` create everything under `~/.config/claude-chat/`:
@@ -107,22 +107,22 @@ Adding a friend is asymmetric: one person sends a request; the other accepts.
 
 ```bash
 # Ask your friend Bob for his 76-char Tox ID.
-chat add bob 76518406F6A9F2217E8DC487BCE0B22A1D8E68F50F3B9C8D...
+cc-chat add bob 76518406F6A9F2217E8DC487BCE0B22A1D8E68F50F3B9C8D...
 # Output: "Added bob. Friend request sent — waiting for them to accept."
 ```
 
-Bob's daemon will receive your request the next time he's online and connected to the DHT. You don't need to keep `chat` running.
+Bob's daemon will receive your request the next time he's online and connected to the DHT. You don't need to keep `cc-chat` running.
 
 ### 4.2 Someone added you (you accept)
 
 ```bash
-chat requests
+cc-chat requests
 # [1 pending friend request(s)]
 #   A1B2C3D4E5F6789... (64-char public key)
 #     "hi, it's Alice — can we chat?"
 
 # Accept with a unique prefix of the public key. 8 chars is usually unique:
-chat accept alice A1B2C3D4
+cc-chat accept alice A1B2C3D4
 # Output: "Accepted. Added as 'alice'."
 ```
 
@@ -131,8 +131,8 @@ The alias (`alice`) is local to *you*: it's how you'll refer to them in commands
 ### 4.3 Check the link is up
 
 ```bash
-chat contacts             # ✓ alice    online   (after the friend link establishes)
-chat contacts --online    # only show people currently online
+cc-chat contacts             # ✓ alice    online   (after the friend link establishes)
+cc-chat contacts --online    # only show people currently online
 ```
 
 A fresh friend link can take **10–60 seconds** to come online after both sides connect to the DHT. If it's still offline after a few minutes, see §11 Troubleshooting.
@@ -143,23 +143,23 @@ A fresh friend link can take **10–60 seconds** to come online after both sides
 
 ```bash
 # Send a one-liner.
-chat send bob "see the PR I just pushed?"
+cc-chat send bob "see the PR I just pushed?"
 
 # Send something longer from stdin (no shell-history leak).
-chat send bob -
+cc-chat send bob -
 > This is a multi-line message.
 > Hit Ctrl-D when done.
 ^D
 
 # See your unread messages (this marks them read after showing).
-chat unread
+cc-chat unread
 
 # See unread from one contact only.
-chat unread bob
+cc-chat unread bob
 
 # Browse history with a contact.
-chat read bob                  # last 20
-chat read bob --limit 200      # more
+cc-chat read bob                  # last 20
+cc-chat read bob --limit 200      # more
 ```
 
 ### 5.1 What the status field means
@@ -191,7 +191,7 @@ cc-chat is designed for asynchronous use — **don't worry about whether your fr
 - The receiver dedups by message UUID and ACKs each one, so even retries are safe.
 
 ```bash
-chat queue                     # what's waiting to go out
+cc-chat queue                     # what's waiting to go out
 # [2 queued]
 #   bob: "see the PR I just pushed?" (5m ago)
 #   bob: "and the test I wrote" (3m ago)
@@ -214,7 +214,7 @@ ack_timeout_minutes = 5     # resend an un-ACKed message after this long, while 
 fail_after_hours = 24       # mark as failed after this long without an ACK
 ```
 
-The daemon reads the file at start; restart it (`chat daemon stop && chat daemon start`) after editing.
+The daemon reads the file at start; restart it (`chat daemon stop && cc-chat daemon start`) after editing.
 
 ---
 
@@ -226,7 +226,7 @@ The daemon reads the file at start; restart it (`chat daemon stop && chat daemon
 # (i.e. you added her, not just accepted her request). See PRD §4.5.3.
 
 # Bob must be online for introduce.
-chat introduce bob carol --note "my coworker"
+cc-chat introduce bob carol --note "my coworker"
 
 # Bob sees it on his side:
 chat introductions
@@ -235,16 +235,16 @@ chat introductions
 #     note: my coworker
 
 # Bob accepts; this sends a friend request to Carol. Carol then accepts as in §4.2.
-chat accept-intro alice carol
+cc-chat accept-intro alice carol
 # Optional: rename locally
-chat accept-intro alice carol --alias=co_carol
+cc-chat accept-intro alice carol --alias=co_carol
 ```
 
 ---
 
 ## 9. Claude Code integration (the plugin)
 
-The plugin needs `chat` on your `PATH` (you installed it in §2). It bundles the unread-notification hook, four slash commands, and an MCP server config.
+The plugin needs `cc-chat` on your `PATH` (you installed it in §2). It bundles the unread-notification hook, four slash commands, and an MCP server config.
 
 ### 9.1 Install the plugin
 
@@ -272,7 +272,7 @@ claude --plugin-dir /absolute/path/to/cc-chat-checkout/claude-code-plugin
 ```bash
 # Have a friend send you something, OR queue a message to yourself:
 # (Two daemons on one machine — see §10.)
-chat --json unread          # should print [...] — the same data the hook injects
+cc-chat --json unread          # should print [...] — the same data the hook injects
 
 # In Claude Code:
 /cc-chat:chat-unread        # ask Claude to show + translate unread
@@ -289,30 +289,30 @@ Useful for testing or playing both sides of a chat without a second device. Each
 **Terminal 1 (Alice)**:
 ```fish
 set -x CLAUDE_CHAT_HOME /tmp/alice         # or `export CLAUDE_CHAT_HOME=/tmp/alice` in bash/zsh
-chat init
-chat daemon start
-chat me                                    # copy the Tox ID
+cc-chat init
+cc-chat daemon start
+cc-chat me                                    # copy the Tox ID
 ```
 
 **Terminal 2 (Bob)**:
 ```fish
 set -x CLAUDE_CHAT_HOME /tmp/bob
-chat init
-chat daemon start
-chat add alice <paste Alice's Tox ID>
+cc-chat init
+cc-chat daemon start
+cc-chat add alice <paste Alice's Tox ID>
 ```
 
 **Back in Terminal 1**:
 ```fish
-chat requests
-chat accept bob <pubkey-prefix from the request>
-chat contacts                              # wait until bob shows online
-chat send bob "hi from alice"
+cc-chat requests
+cc-chat accept bob <pubkey-prefix from the request>
+cc-chat contacts                              # wait until bob shows online
+cc-chat send bob "hi from alice"
 ```
 
 **Terminal 2**:
 ```fish
-chat unread                                # see Alice's message
+cc-chat unread                                # see Alice's message
 ```
 
 Clean up: `chat daemon stop` in each terminal, then `rm -rf /tmp/alice /tmp/bob`.
@@ -322,9 +322,9 @@ Clean up: `chat daemon stop` in each terminal, then `rm -rf /tmp/alice /tmp/bob`
 ## 11. Manage the daemon
 
 ```bash
-chat daemon start             # spawn the daemon (detached); idempotent
-chat daemon stop              # graceful shutdown via the IPC socket
-chat status                   # PID / uptime / DHT / contacts / queue / 24h stats
+cc-chat daemon start             # spawn the daemon (detached); idempotent
+cc-chat daemon stop              # graceful shutdown via the IPC socket
+cc-chat status                   # PID / uptime / DHT / contacts / queue / 24h stats
 tail -f ~/.config/claude-chat/daemon.log
 ```
 
@@ -336,14 +336,14 @@ The daemon is **persistent**: leave it running. It auto-restarts nothing — if 
 
 | Symptom | Likely cause / fix |
 |---|---|
-| `chat` not found | `pipx ensurepath` and start a new shell |
+| `cc-chat` not found | `pipx ensurepath` and start a new shell |
 | `could not load libtoxcore` | Install it: macOS `brew install toxcore`; Linux distro package |
 | `daemon already running` | Another instance is up. Either keep it (just use it), or `chat daemon stop` then start. |
 | `chat status` keeps showing `DHT: not connected` | Wait 30–60s. If still not connecting, check outbound UDP is allowed (cafe Wi-Fi / corporate VPN can block it); Tox will fall back to TCP if UDP is fully blocked but it's slower. Restart the daemon. |
 | Friend you `add`-ed never comes online in your contacts | They have to accept first. Until then your side just shows them offline. Once accepted, both sides need DHT connectivity for the friend link. |
 | Can't `chat accept <alias> <prefix>` — "REQUEST_NOT_FOUND" | The prefix doesn't match any pending request. Try a longer prefix from `chat requests`. |
 | Message stuck at `queued` even though friend is online | The "online" status can lag. Wait one ack-timeout cycle (`ack_timeout_minutes`, default 5) — the retry sweep will resend. |
-| Hook injects nothing in Claude Code | Either nothing is unread, the daemon is down, or `chat` isn't on PATH inside the Claude Code process. Set `CHAT_BIN` in the hook config (see `claude-code-plugin/hooks/unread_hook.py`). |
+| Hook injects nothing in Claude Code | Either nothing is unread, the daemon is down, or `cc-chat` isn't on PATH inside the Claude Code process. Set `CHAT_BIN` in the hook config (see `claude-code-plugin/hooks/unread_hook.py`). |
 | MCP tools don't show in `/mcp` | Plugin not installed, daemon not running, or `[mcp]` extra not installed. `pipx install --force 'cc-chat[mcp]'`. |
 | Lost my keys / `tox_state.bin` is gone | Your identity is the file. There is no recovery without a backup. You'll need to start over (`chat init`) and ask friends to re-add you. |
 
@@ -353,7 +353,7 @@ The daemon is **persistent**: leave it running. It auto-restarts nothing — if 
 
 ```bash
 # 1) Stop the daemon
-chat daemon stop
+cc-chat daemon stop
 
 # 2) (in Claude Code) remove the plugin if you installed it
 /plugin uninstall cc-chat@cc-chat

@@ -48,14 +48,14 @@
 **场景 A：发送异步消息**
 ```
 Alice 正在写代码，想问 Bob 一个问题。
-$ chat send bob "你看下我刚 push 的 PR，有空回我"
+$ cc-chat send bob "你看下我刚 push 的 PR，有空回我"
 ✓ 已发送
 （Alice 继续写代码，不等回复）
 ```
 
 **场景 B：查看未读消息**
 ```
-$ chat unread
+$ cc-chat unread
 [3 条未读]
 1. bob (10 分钟前): 看了，建议改改 errorhandler 的命名
 2. carol (1 小时前): 周末爬山吗？
@@ -64,10 +64,10 @@ $ chat unread
 
 **场景 C：对方离线时发消息**
 ```
-$ chat send bob "晚安"
+$ cc-chat send bob "晚安"
 ✓ 对方当前离线，将在其上线后自动发送（已加入本地队列）
 
-$ chat queue
+$ cc-chat queue
 [2 条待发]
 - bob: "晚安" (5 分钟前加入队列)
 - carol: "明早 9 点开会" (1 小时前加入队列)
@@ -77,12 +77,12 @@ $ chat queue
 ```
 Bob 把他的 Tox ID 通过其他渠道（微信、邮件）告诉 Alice。
 
-$ chat add bob 76518406F6A9F2217E8DC487...（76 字符 Tox ID）
+$ cc-chat add bob 76518406F6A9F2217E8DC487...（76 字符 Tox ID）
 ✓ 已添加 bob 到联系人。
   发送好友请求中... 等待对方接受。
 
 # Alice 自己的 Tox ID：
-$ chat me
+$ cc-chat me
 你的 Tox ID: A1B2C3D4E5F6...
 （把这串发给朋友，他们就能添加你）
 ```
@@ -90,11 +90,11 @@ $ chat me
 **场景 E：转发联系方式**
 ```
 Alice 想把 Carol 介绍给 Bob：
-$ chat introduce bob carol
+$ cc-chat introduce bob carol
 ✓ 已向 bob 发送 carol 的联系方式
 
 # Bob 收到：
-$ chat unread
+$ cc-chat unread
 [1 条联系方式邀请]
 - alice 给你介绍了 carol (Tox ID: F1E2D3...)
   接受 [y/n]?
@@ -105,7 +105,7 @@ $ chat unread
 $ chat ask "bob 上次说 errorhandler 的事是怎么改的？"
 （Claude 在聊天历史里搜索并回答）
 
-$ chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的话"
+$ cc-chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的话"
 （Claude 起草，用户确认后发送）
 ```
 
@@ -130,7 +130,7 @@ $ chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的�
 │                                                          │
 │  ┌─────────────────┐    ┌────────────────────────────┐   │
 │  │  Claude Code    │    │  CLI 命令                   │   │
-│  │  (聊天上下文)   │    │  $ chat send / read / add  │   │
+│  │  (聊天上下文)   │    │  $ cc-chat send / read / add  │   │
 │  └────────┬────────┘    └─────────────┬──────────────┘   │
 │           │                            │                 │
 │           └────────────┬───────────────┘                 │
@@ -174,13 +174,13 @@ $ chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的�
 
 **两个进程**：
 
-1. **`chat-daemon`**：常驻后台进程
+1. **`cc-cc-chat-daemon`**：常驻后台进程
    - 启动方式：用户登录时通过 systemd / launchd / 任务计划程序启动
    - 持续运行 Tox 实例，维护 DHT 连接
    - 监听 IPC，处理 CLI 命令
    - 接收消息并写入 SQLite
 
-2. **`chat`**：用户每次输入的 CLI 命令
+2. **`cc-chat`**：用户每次输入的 CLI 命令
    - 短生命周期：执行一次命令就退出
    - 通过 IPC 和 daemon 通信
    - 格式化输出到终端
@@ -309,12 +309,12 @@ CREATE TABLE friend_requests (
 Alice 添加 Bob：
 
 1. Alice 获得 Bob 的 Tox ID（线下、邮件、微信等任意渠道）
-2. $ chat add bob <bob_tox_id>
+2. $ cc-chat add bob <bob_tox_id>
 3. daemon 调用 tox_friend_add()，发送好友请求（可附带文字）
 4. 请求通过 DHT 到达 Bob 的 daemon
-5. Bob 看到请求：$ chat requests
+5. Bob 看到请求：$ cc-chat requests
    - 公钥 A1B2...（64 字符）: "嗨我是 alice 加个好友"
-6. Bob 接受并起别名：$ chat accept alice <公钥前缀>
+6. Bob 接受并起别名：$ cc-chat accept alice <公钥前缀>
    daemon 用请求里的公钥调 tox_friend_add_norequest()
 7. 双方都在联系人列表里出现对方（Bob 这边 alice 的 tox_id 为 NULL）
 ```
@@ -588,7 +588,7 @@ Tox DHT 节点会自动发心跳保活。但应用层也可以增强：
 ```
 Alice 想把 Carol 介绍给 Bob：
 
-1. $ chat introduce bob carol
+1. $ cc-chat introduce bob carol
 2. daemon 检查：
    - bob 在我的联系人？✓
    - carol 在我的联系人？✓
@@ -610,8 +610,8 @@ Bob 的 daemon 收到后：
    - alice 给你介绍了 carol (Tox ID: F1E2...)
      备注: 我同事
      接受并起别名 [n/y/rename]?
-7. Bob: $ chat accept-intro alice carol  # 用默认 alias
-   或 $ chat accept-intro alice carol --alias=co_carol
+7. Bob: $ cc-chat accept-intro alice carol  # 用默认 alias
+   或 $ cc-chat accept-intro alice carol --alias=co_carol
 8. daemon 发好友请求给 carol
 9. Carol 那边像普通好友请求一样处理
 ```
@@ -647,7 +647,7 @@ CREATE TABLE pending_introductions (
 #### 4.6.1 传输
 
 - **Linux/macOS**：Unix domain socket，路径 `~/.config/claude-chat/daemon.sock`
-- **Windows**：Named pipe，`\\.\pipe\claude-chat-daemon`
+- **Windows**：Named pipe，`\\.\pipe\claude-cc-chat-daemon`
 - **权限**：仅当前用户可读写（0600）
 
 #### 4.6.2 消息格式
@@ -725,43 +725,43 @@ v2 可加 server-sent events，让 CLI 工具订阅消息流。
 
 ```bash
 # 身份相关
-chat init                      # 首次初始化，生成密钥
-chat me                        # 显示自己的 Tox ID 和名字
-chat set-name "Alice"          # 设置展示名
+cc-chat init                      # 首次初始化，生成密钥
+cc-chat me                        # 显示自己的 Tox ID 和名字
+cc-chat set-name "Alice"          # 设置展示名
 
 # 联系人管理
-chat add <alias> <tox_id>      # 添加好友
-chat accept <alias> <pubkey>   # 接受好友请求（pubkey 为请求方公钥前缀）
-chat requests                  # 查看待处理的好友请求
-chat contacts                  # 列出所有联系人
-chat contacts --online         # 仅在线的
+cc-chat add <alias> <tox_id>      # 添加好友
+cc-chat accept <alias> <pubkey>   # 接受好友请求（pubkey 为请求方公钥前缀）
+cc-chat requests                  # 查看待处理的好友请求
+cc-chat contacts                  # 列出所有联系人
+cc-chat contacts --online         # 仅在线的
 chat remove <alias>            # 删除联系人
 
 # 消息收发
-chat send <alias> <message>    # 发消息
-chat send <alias> -            # 从 stdin 读
-chat unread                    # 显示所有未读
-chat unread <alias>            # 某人的未读
-chat read <alias>              # 看历史（默认最近 20 条）
-chat read <alias> --limit 50
-chat queue                     # 待发队列
+cc-chat send <alias> <message>    # 发消息
+cc-chat send <alias> -            # 从 stdin 读
+cc-chat unread                    # 显示所有未读
+cc-chat unread <alias>            # 某人的未读
+cc-chat read <alias>              # 看历史（默认最近 20 条）
+cc-chat read <alias> --limit 50
+cc-chat queue                     # 待发队列
 
 # 联系方式转发
-chat introduce <to> <whom>     # 介绍朋友
+cc-chat introduce <to> <whom>     # 介绍朋友
 chat introductions             # 收到的介绍
-chat accept-intro <from> <whom> [--alias=...]
+cc-chat accept-intro <from> <whom> [--alias=...]
 
 # 系统
-chat status                    # 显示 daemon 状态、DHT 连接、好友在线情况
-chat daemon start/stop/restart
-chat daemon logs
+cc-chat status                    # 显示 daemon 状态、DHT 连接、好友在线情况
+cc-chat daemon start/stop/restart
+cc-chat daemon logs
 chat mcp serve                 # 通过 stdio 跑 MCP server（见 §4.12）
 
 # Claude 协同
 # v0.1 已完成：--json 开关、SessionStart 未读 hook、slash 命令、MCP server（§4.12）
 # 仍在 v2：
 chat ask <question>            # 让 Claude 在历史里搜
-chat send <alias> --draft-with-claude <prompt>
+cc-chat send <alias> --draft-with-claude <prompt>
 ```
 
 ### 4.8 数据存储布局
@@ -866,7 +866,7 @@ fail_after_hours = 24
 
 **`chat status` 命令输出**：
 ```
-$ chat status
+$ cc-chat status
 Daemon: running (PID 12345)
 Uptime: 3d 2h 15m
 DHT: connected (UDP)
@@ -913,7 +913,7 @@ Stats (last 24h):
 **为什么叫 `cc-chat`**（不叫 `claude-chat`）：内部原名 `claude-chat` 在 PyPI 已被无关项目占用，而且公开发布名里带 "Claude" 商标也最好避免。`cc-chat` 读作 "Claude Code chat"。
 
 **有意保留不动的**：
-- CLI 命令 `chat` / `chat-daemon`（输入体验）。
+- CLI 命令 `cc-chat` / `cc-cc-chat-daemon`（输入体验）。
 - 内部包名 `claude_chat`（纯内部；改它工作量大、用户无感知）。
 - 磁盘配置目录 `~/.config/claude-chat/`（改它会丢用户现有的 Tox 身份与消息历史）。
 

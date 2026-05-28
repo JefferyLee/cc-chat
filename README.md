@@ -12,10 +12,10 @@ end-to-end encrypted, and fully decentralized** — no servers, built on the
 
 Two processes (see the PRD §3.2):
 
-- **`chat-daemon`** — a background process that stays online, holds your Tox
+- **`cc-cc-chat-daemon`** — a background process that stays online, holds your Tox
   identity, maintains the DHT connection, and receives messages into a local
   SQLite database.
-- **`chat`** — the short-lived CLI you run for each command; it talks to the
+- **`cc-chat`** — the short-lived CLI you run for each command; it talks to the
   daemon over a Unix socket and exits.
 
 Everything is local: your keys live in `~/.config/claude-chat/`, and there is no
@@ -30,7 +30,7 @@ cloud. You add friends by exchanging Tox IDs through any channel you like.
 
 ## Install the engine
 
-The `chat` engine is a normal program (Python + a background daemon) that needs
+The `cc-chat` engine is a normal program (Python + a background daemon) that needs
 `libtoxcore`. It installs separately from the Claude Code plugin below.
 
 ```bash
@@ -44,33 +44,33 @@ pipx install cc-chat                                    # once published to PyPI
 pipx install 'cc-chat[mcp]'
 ```
 
-This installs two commands: `chat` and `chat-daemon`. (The PyPI/Homebrew
+This installs two commands: `cc-chat` and `cc-cc-chat-daemon`. (The PyPI/Homebrew
 distribution name is `cc-chat`; the import package is `claude_chat`.)
 
 ## Quick start
 
 ```bash
 # 1. Create your identity (generates your Tox keypair)
-chat init
+cc-chat init
 
 # 2. Start the background daemon
-chat daemon start
+cc-chat daemon start
 
 # 3. See your own Tox ID — share it with a friend over any channel
-chat me
+cc-chat me
 
 # 4. Add a friend by their Tox ID (76 hex chars)
-chat add bob 76518406F6A9F2217E8DC487...
+cc-chat add bob 76518406F6A9F2217E8DC487...
 
 #    Your friend, after you've added them, accepts the request on their side:
-chat requests                      # shows the pending request's public key
-chat accept alice <public-key-prefix>
+cc-chat requests                      # shows the pending request's public key
+cc-chat accept alice <public-key-prefix>
 
 # 5. Chat
-chat send bob "你看下我刚 push 的 PR，有空回我"
-chat unread                        # show unread messages
-chat read bob                      # conversation history with bob
-chat queue                         # messages waiting to be delivered
+cc-chat send bob "你看下我刚 push 的 PR，有空回我"
+cc-chat unread                        # show unread messages
+cc-chat read bob                      # conversation history with bob
+cc-chat queue                         # messages waiting to be delivered
 ```
 
 If you message a friend who is offline, the message is queued locally and sent
@@ -123,7 +123,7 @@ config.toml     optional configuration
 ## Claude Code integration
 
 The integration ships as a **Claude Code plugin** (`claude-code-plugin/`) that
-wires up everything in one step — no manual config editing. It needs the `chat`
+wires up everything in one step — no manual config editing. It needs the `cc-chat`
 engine on your `PATH` (see "Install the engine" above).
 
 ### Install the plugin

@@ -6,7 +6,7 @@
 
 cc-chat 分**两部分**，分别安装：
 
-1. **引擎**（`chat` 与 `chat-daemon` 命令 + 后台 daemon + libtoxcore）。
+1. **引擎**（`cc-chat` 与 `cc-cc-chat-daemon` 命令 + 后台 daemon + libtoxcore）。
 2. **Claude Code 插件**（slash 命令、未读通知 hook、MCP server）—— 可选，但这才是本项目的精髓。
 
 ---
@@ -30,7 +30,7 @@ brew install toxcore
 
 # 2) 准备 pipx
 brew install pipx
-pipx ensurepath          # 然后重开终端，确保 `chat` 在 PATH 上
+pipx ensurepath          # 然后重开终端，确保 `cc-chat` 在 PATH 上
 
 # 3) 从 GitHub 安装 cc-chat
 pipx install git+https://github.com/JefferyLee/cc-chat
@@ -57,11 +57,11 @@ pipx install git+https://github.com/JefferyLee/cc-chat
 ### 2.3 验证
 
 ```bash
-chat --help                   # 列出所有子命令即成功
-chat-daemon --help            # 同一个 daemon，可直接调用
+cc-chat --help                   # 列出所有子命令即成功
+cc-chat-daemon --help            # 同一个 daemon，可直接调用
 ```
 
-如果找不到 `chat`，跑一遍 `pipx ensurepath` 然后重开终端。
+如果找不到 `cc-chat`，跑一遍 `pipx ensurepath` 然后重开终端。
 
 ---
 
@@ -69,19 +69,19 @@ chat-daemon --help            # 同一个 daemon，可直接调用
 
 ```bash
 # 生成身份（一对 Curve25519 密钥），只需做一次
-chat init
+cc-chat init
 
 # 启动后台 daemon
-chat daemon start
+cc-chat daemon start
 
 # 看自己的 Tox ID —— 把这串 76 字符发给朋友（任何渠道：聊天软件、邮件、当面）
-chat me
+cc-chat me
 
 # 可选：设置一个朋友会看到的展示名
-chat set-name "Alice"
+cc-chat set-name "Alice"
 
 # 大约 10–40 秒后 DHT 会连上
-chat status     # 就绪后显示 "DHT: connected (UDP)" 或 "(TCP)"
+cc-chat status     # 就绪后显示 "DHT: connected (UDP)" 或 "(TCP)"
 ```
 
 `chat init` 与第一次 `chat daemon start` 会在 `~/.config/claude-chat/` 下生成：
@@ -106,22 +106,22 @@ chat status     # 就绪后显示 "DHT: connected (UDP)" 或 "(TCP)"
 
 ```bash
 # 问你的朋友 Bob 要他的 76 字符 Tox ID
-chat add bob 76518406F6A9F2217E8DC487BCE0B22A1D8E68F50F3B9C8D...
+cc-chat add bob 76518406F6A9F2217E8DC487BCE0B22A1D8E68F50F3B9C8D...
 # 输出：Added bob. Friend request sent — waiting for them to accept.
 ```
 
-下一次 Bob 上线并连上 DHT 时，他的 daemon 会收到你的请求。你不用一直开着 `chat`。
+下一次 Bob 上线并连上 DHT 时，他的 daemon 会收到你的请求。你不用一直开着 `cc-chat`。
 
 ### 4.2 对方加你（你接受）
 
 ```bash
-chat requests
+cc-chat requests
 # [1 pending friend request(s)]
 #   A1B2C3D4E5F6789... (64 字符公钥)
 #     "hi, it's Alice — can we chat?"
 
 # 用公钥的唯一前缀接受。一般 8 位就够唯一：
-chat accept alice A1B2C3D4
+cc-chat accept alice A1B2C3D4
 # 输出：Accepted. Added as 'alice'.
 ```
 
@@ -130,8 +130,8 @@ chat accept alice A1B2C3D4
 ### 4.3 确认链路通了
 
 ```bash
-chat contacts             # ✓ alice    online   （好友链路建立后会出现）
-chat contacts --online    # 只看当前在线的
+cc-chat contacts             # ✓ alice    online   （好友链路建立后会出现）
+cc-chat contacts --online    # 只看当前在线的
 ```
 
 新的好友链路在双方都连上 DHT 之后，通常还要 **10–60 秒** 才会显示在线。如果几分钟后仍是 offline，看 §11 排错。
@@ -142,23 +142,23 @@ chat contacts --online    # 只看当前在线的
 
 ```bash
 # 发一条
-chat send bob "看下我刚 push 的 PR？"
+cc-chat send bob "看下我刚 push 的 PR？"
 
 # 长消息从 stdin 读（避免泄漏到 shell 历史）
-chat send bob -
+cc-chat send bob -
 > 多行消息……
 > 写完按 Ctrl-D
 ^C
 
 # 看未读（看完会标已读）
-chat unread
+cc-chat unread
 
 # 只看某人的未读
-chat unread bob
+cc-chat unread bob
 
 # 看与某人的历史
-chat read bob                  # 默认最近 20 条
-chat read bob --limit 200      # 看更多
+cc-chat read bob                  # 默认最近 20 条
+cc-chat read bob --limit 200      # 看更多
 ```
 
 ### 5.1 状态字段说明
@@ -191,7 +191,7 @@ cc-chat 就是为异步设计的——**别管对方在不在线**。
 - 接收方按消息 UUID 去重并对每条都 ACK，所以重发也安全。
 
 ```bash
-chat queue                     # 看待发出的
+cc-chat queue                     # 看待发出的
 # [2 queued]
 #   bob: "看下我刚 push 的 PR？" (5m ago)
 #   bob: "还有那段测试" (3m ago)
@@ -214,7 +214,7 @@ ack_timeout_minutes = 5     # 未收到 ACK 等这么久就重发（前提是好
 fail_after_hours = 24       # 超过这么久仍未确认就标记为 failed
 ```
 
-daemon 在启动时读这个文件；改完后 `chat daemon stop && chat daemon start` 重启即生效。
+daemon 在启动时读这个文件；改完后 `chat daemon stop && cc-chat daemon start` 重启即生效。
 
 ---
 
@@ -226,7 +226,7 @@ daemon 在启动时读这个文件；改完后 `chat daemon stop && chat daemon 
 #（即你主动加的 carol，不只是接受了她的请求）。详见 PRD §4.5.3。
 
 # Bob 必须在线才能 introduce。
-chat introduce bob carol --note "我同事"
+cc-chat introduce bob carol --note "我同事"
 
 # Bob 在他那边看到：
 chat introductions
@@ -235,16 +235,16 @@ chat introductions
 #     note: 我同事
 
 # Bob 接受；这会自动给 Carol 发好友请求。Carol 之后按 §4.2 接受即可。
-chat accept-intro alice carol
+cc-chat accept-intro alice carol
 # 也可以本地起别名
-chat accept-intro alice carol --alias=co_carol
+cc-chat accept-intro alice carol --alias=co_carol
 ```
 
 ---
 
 ## 9. Claude Code 集成（插件）
 
-插件要求 `chat` 在你的 `PATH` 上（§2 已经装好了）。它打包了未读通知 hook、4 个 slash 命令、MCP server 配置。
+插件要求 `cc-chat` 在你的 `PATH` 上（§2 已经装好了）。它打包了未读通知 hook、4 个 slash 命令、MCP server 配置。
 
 ### 9.1 装插件
 
@@ -271,7 +271,7 @@ claude --plugin-dir /绝对路径/到/cc-chat 仓库/claude-code-plugin
 
 ```bash
 # 让朋友发条消息给你，或者本机起两个身份给自己发（见 §10）：
-chat --json unread          # 应该打印 [...]，hook 注入的就是这份数据
+cc-chat --json unread          # 应该打印 [...]，hook 注入的就是这份数据
 
 # 在 Claude Code 里：
 /cc-chat:chat-unread        # 让 Claude 显示并翻译未读
@@ -288,30 +288,30 @@ chat --json unread          # 应该打印 [...]，hook 注入的就是这份数
 **终端 1（Alice）**：
 ```fish
 set -x CLAUDE_CHAT_HOME /tmp/alice         # bash/zsh: export CLAUDE_CHAT_HOME=/tmp/alice
-chat init
-chat daemon start
-chat me                                    # 复制 Tox ID
+cc-chat init
+cc-chat daemon start
+cc-chat me                                    # 复制 Tox ID
 ```
 
 **终端 2（Bob）**：
 ```fish
 set -x CLAUDE_CHAT_HOME /tmp/bob
-chat init
-chat daemon start
-chat add alice <粘贴 Alice 的 Tox ID>
+cc-chat init
+cc-chat daemon start
+cc-chat add alice <粘贴 Alice 的 Tox ID>
 ```
 
 **回到终端 1**：
 ```fish
-chat requests
-chat accept bob <从请求里复制的公钥前缀>
-chat contacts                              # 等到 bob 显示 online
-chat send bob "hi from alice"
+cc-chat requests
+cc-chat accept bob <从请求里复制的公钥前缀>
+cc-chat contacts                              # 等到 bob 显示 online
+cc-chat send bob "hi from alice"
 ```
 
 **终端 2**：
 ```fish
-chat unread                                # 看到 Alice 的消息
+cc-chat unread                                # 看到 Alice 的消息
 ```
 
 收尾：两个终端各跑 `chat daemon stop`，然后 `rm -rf /tmp/alice /tmp/bob`。
@@ -321,9 +321,9 @@ chat unread                                # 看到 Alice 的消息
 ## 11. 管理 daemon
 
 ```bash
-chat daemon start             # spawn 一个独立 daemon；幂等
-chat daemon stop              # 通过 IPC socket 优雅关闭
-chat status                   # PID / 运行时长 / DHT / 联系人 / 队列 / 24h 统计
+cc-chat daemon start             # spawn 一个独立 daemon；幂等
+cc-chat daemon stop              # 通过 IPC socket 优雅关闭
+cc-chat status                   # PID / 运行时长 / DHT / 联系人 / 队列 / 24h 统计
 tail -f ~/.config/claude-chat/daemon.log
 ```
 
@@ -335,14 +335,14 @@ daemon 是**常驻**的：留着它跑。它**不会**自动重启——如果�
 
 | 现象 | 可能原因 / 处理 |
 |---|---|
-| `chat` 找不到 | `pipx ensurepath` 然后重开终端 |
+| `cc-chat` 找不到 | `pipx ensurepath` 然后重开终端 |
 | `could not load libtoxcore` | 装上：macOS `brew install toxcore`；Linux 装发行版包 |
 | `daemon already running` | 已经有 daemon 在跑了。要么继续用，要么 `chat daemon stop` 再 start |
 | `chat status` 一直 `DHT: not connected` | 等 30–60s。再不行检查出站 UDP 是否被允许（咖啡馆 Wi-Fi / 公司 VPN 常拦）；UDP 全堵时 Tox 会回退到 TCP 但更慢。重启 daemon |
 | 你 `add` 了对方，他一直显示 offline | 他得先接受才行。在接受之前，你这边一直显示 offline。接受之后两侧都需要 DHT 连接才能建好友链路 |
 | 接 `chat accept <别名> <前缀>` 报 `REQUEST_NOT_FOUND` | 前缀没匹配上任何待处理请求。从 `chat requests` 复制更长的前缀 |
 | 消息卡在 `queued`，但朋友其实在线 | "在线"状态可能滞后。等一个 ack-timeout 周期（默认 `ack_timeout_minutes=5`），重试扫描会自动重发 |
-| Claude Code 里 hook 没注入任何东西 | 没有未读、daemon 没跑、或者 `chat` 不在 Claude Code 进程的 PATH 上。在 hook 配置里设 `CHAT_BIN`（见 `claude-code-plugin/hooks/unread_hook.py`） |
+| Claude Code 里 hook 没注入任何东西 | 没有未读、daemon 没跑、或者 `cc-chat` 不在 Claude Code 进程的 PATH 上。在 hook 配置里设 `CHAT_BIN`（见 `claude-code-plugin/hooks/unread_hook.py`） |
 | `/mcp` 里看不到工具 | 插件没装、daemon 没跑、或者没装 `[mcp]` extra。`pipx install --force 'cc-chat[mcp]'` |
 | 弄丢了 `tox_state.bin` | 这文件就是你的身份。没有备份就找不回。只能 `chat init` 从头来过，让朋友重新加你 |
 
@@ -352,7 +352,7 @@ daemon 是**常驻**的：留着它跑。它**不会**自动重启——如果�
 
 ```bash
 # 1) 关 daemon
-chat daemon stop
+cc-chat daemon stop
 
 # 2)（在 Claude Code 里）如果装过插件就卸了
 /plugin uninstall cc-chat@cc-chat

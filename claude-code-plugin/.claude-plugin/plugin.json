@@ -1,6 +1,6 @@
 {
   "name": "cc-chat",
-  "description": "Decentralized, encrypted, asynchronous chat (Tox) inside Claude Code: unread-message notifications, slash commands, and MCP tools. Requires the `chat` engine on PATH (see repo README).",
+  "description": "Decentralized, encrypted, asynchronous chat (Tox) inside Claude Code: unread-message notifications, slash commands, and MCP tools. Requires the `cc-chat` engine on PATH (see repo README).",
   "version": "0.1.0",
   "author": {
     "name": "Jeffery Li",

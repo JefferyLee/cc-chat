@@ -1,4 +1,4 @@
-"""The `chat` CLI (PRD §4.7). Short-lived: each command talks to the daemon over
+"""The `cc-chat` CLI (PRD §4.7). Short-lived: each command talks to the daemon over
 IPC and exits. Only `init` and `daemon start` touch the filesystem/process
 directly; everything else goes through the daemon.
 """
@@ -60,7 +60,7 @@ def init():
         f"Initialized cc-chat.\n"
         f"Your Tox ID: {address}\n\n"
         f"Share this ID with friends so they can add you.\n"
-        f"Next: start the daemon with `chat daemon start`."
+        f"Next: start the daemon with `cc-chat daemon start`."
     )
 
 
@@ -124,7 +124,7 @@ def status(ctx):
 @click.argument("alias")
 @click.argument("tox_id")
 def add(alias, tox_id):
-    """Add a friend by their Tox ID: chat add <alias> <tox_id>."""
+    """Add a friend by their Tox ID: cc-chat add <alias> <tox_id>."""
     _call("add_contact", {"alias": alias, "tox_id": tox_id})
     click.echo(f"Added {alias}. Friend request sent — waiting for them to accept.")
 
@@ -144,14 +144,14 @@ def requests(ctx):
         click.echo(f"  {r['public_key']}")
         if r["message"]:
             click.echo(f"    \"{r['message']}\"")
-    click.echo("\nAccept with: chat accept <alias> <public-key-prefix>")
+    click.echo("\nAccept with: cc-chat accept <alias> <public-key-prefix>")
 
 
 @cli.command()
 @click.argument("alias")
 @click.argument("public_key")
 def accept(alias, public_key):
-    """Accept a friend request: chat accept <alias> <public-key-prefix>."""
+    """Accept a friend request: cc-chat accept <alias> <public-key-prefix>."""
     _call("accept_request", {"alias": alias, "public_key": public_key})
     click.echo(f"Accepted. Added as '{alias}'.")
 
@@ -189,7 +189,7 @@ def _ago(ts: int) -> str:
 @click.argument("message")
 @click.pass_context
 def send(ctx, alias, message):
-    """Send a message: chat send <alias> <message> (use - to read from stdin)."""
+    """Send a message: cc-chat send <alias> <message> (use - to read from stdin)."""
     if message == "-":
         message = sys.stdin.read().rstrip("\n")
     res = _call("send_message", {"alias": alias, "body": message})
@@ -259,7 +259,7 @@ def queue(ctx):
 @click.argument("whom")
 @click.option("--note", default="", help="A short note about who this is.")
 def introduce(to, whom, note):
-    """Share a contact's details: chat introduce <to> <whom>."""
+    """Share a contact's details: cc-chat introduce <to> <whom>."""
     _call("introduce", {"to_alias": to, "contact_alias": whom, "note": note})
     click.echo(f"✓ Sent {whom}'s contact to {to}.")
 
@@ -280,7 +280,7 @@ def introductions(ctx):
                    f"(Tox ID: {i['introduced_tox_id'][:16]}...)")
         if i["note"]:
             click.echo(f"    note: {i['note']}")
-    click.echo("\nAccept with: chat accept-intro <from> <whom> [--alias=...]")
+    click.echo("\nAccept with: cc-chat accept-intro <from> <whom> [--alias=...]")
 
 
 @cli.command(name="accept-intro")
@@ -288,7 +288,7 @@ def introductions(ctx):
 @click.argument("whom")
 @click.option("--alias", default=None, help="Local alias to give them (default: their suggested name).")
 def accept_intro(introducer, whom, alias):
-    """Accept an introduction: chat accept-intro <from> <whom>."""
+    """Accept an introduction: cc-chat accept-intro <from> <whom>."""
     res = _call("accept_introduction",
                 {"from_alias": introducer, "whom": whom, "alias": alias})
     click.echo(f"Sending a friend request to '{res['alias']}'. They'll need to accept it.")

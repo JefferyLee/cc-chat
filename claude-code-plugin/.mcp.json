@@ -2,7 +2,7 @@
   "mcpServers": {
     "cc-chat": {
       "type": "stdio",
-      "command": "chat",
+      "command": "cc-chat",
       "args": ["mcp", "serve"]
     }
   }

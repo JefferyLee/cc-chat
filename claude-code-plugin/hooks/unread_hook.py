@@ -4,7 +4,7 @@
 Surfaces unread messages into Claude's context when a session starts, so you see
 what friends sent you while you were away — without leaving the terminal.
 
-It runs `chat --json unread` (a read-only peek that does NOT mark messages read),
+It runs `cc-chat --json unread` (a read-only peek that does NOT mark messages read),
 and if there are any, emits `hookSpecificOutput.additionalContext` for Claude.
 
 Wire it up in `.claude/settings.json` (project) or `~/.claude/settings.json`
@@ -20,7 +20,7 @@ Wire it up in `.claude/settings.json` (project) or `~/.claude/settings.json`
       }
     }
 
-Set CHAT_BIN if `chat` isn't on PATH (e.g. CHAT_BIN=/repo/.venv/bin/chat), and
+Set CHAT_BIN if `cc-chat` isn't on PATH (e.g. CHAT_BIN=/repo/.venv/bin/cc-chat), and
 CLAUDE_CHAT_HOME if you use a non-default config dir.
 """
 import json
@@ -32,13 +32,13 @@ EVENT = "SessionStart"
 
 
 def main() -> None:
-    chat = os.environ.get("CHAT_BIN", "chat")
+    chat = os.environ.get("CHAT_BIN", "cc-chat")
     try:
         out = subprocess.run(
             [chat, "--json", "unread"], capture_output=True, text=True, timeout=8
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        return  # chat not installed / daemon hung — stay silent
+        return  # cc-chat not installed / daemon hung — stay silent
     if out.returncode != 0:
         return  # daemon probably not running
 
