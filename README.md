@@ -6,7 +6,7 @@ A command-line chat plugin for Claude Code: talk to friends **asynchronously,
 end-to-end encrypted, and fully decentralized** — no servers, built on the
 [Tox](https://tox.chat) protocol. Messages wait quietly until you look at them.
 
-> Status: v0.1, macOS-first. See [the PRD](docs/prd.md) for the full design.
+> Status: v0.1, macOS-first. New here? Read the [install & usage guide](docs/install-and-usage.md) for a walkthrough; for the full design see the [PRD](docs/prd.md).
 
 ## How it works
 
