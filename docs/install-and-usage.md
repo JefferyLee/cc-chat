@@ -30,7 +30,7 @@ brew install toxcore pipx
 pipx ensurepath          # then restart your shell so `toxi` is on PATH
 
 # 2) Install toxi with the MCP extra
-pipx install 'git+https://github.com/JefferyLee/cc-chat#egg=toxi[mcp]'
+pipx install 'git+https://github.com/JefferyLee/toxi#egg=toxi[mcp]'
 
 # 3) One-shot setup: generates your identity, starts the daemon, wires the
 #    bottom status-bar indicator into ~/.claude/settings.json (with a .bak).
@@ -50,7 +50,7 @@ When PyPI publishing happens, step 2 becomes `pipx install 'toxi[mcp]'`. A Homeb
 sudo apt install libtoxcore2 python3-pip pipx       # adjust per distro
 
 # 2) Same as macOS:
-pipx install 'git+https://github.com/JefferyLee/cc-chat#egg=toxi[mcp]'
+pipx install 'git+https://github.com/JefferyLee/toxi#egg=toxi[mcp]'
 toxi setup
 ```
 
@@ -246,7 +246,7 @@ The plugin needs `toxi` on your `PATH` (you installed it in §2). It bundles the
 
 ```bash
 # Inside a Claude Code session — add the marketplace, then install:
-/plugin marketplace add JefferyLee/cc-chat
+/plugin marketplace add JefferyLee/toxi
 /plugin install toxi@toxi
 
 # Or, for development on a local clone:
@@ -413,4 +413,4 @@ brew uninstall toxcore
 
 - [README](../README.md) — overview, command table.
 - [PRD](prd.md) — full design, including the §4.12 Claude Code integration and §4.13 distribution sections.
-- Repo: https://github.com/JefferyLee/cc-chat
+- Repo: https://github.com/JefferyLee/toxi

@@ -33,7 +33,7 @@ Toxi 让你在 AI 编程代理里直接和朋友聊天——**异步、端到端
 brew install <owner>/tap/toxi              # 见 packaging/homebrew/
 
 # 或者用 pipx（先装好 libtoxcore：brew install toxcore）：
-pipx install git+https://github.com/JefferyLee/cc-chat      # 从源码安装，今天就能用
+pipx install git+https://github.com/JefferyLee/toxi      # 从源码安装，今天就能用
 pipx install toxi                                        # 发布到 PyPI 后
 # 加 MCP 工具支持（可选 extra）：
 pipx install 'toxi[mcp]'
@@ -141,7 +141,7 @@ claude --plugin-dir ./claude-code-plugin
 
 - **引擎 → PyPI**：`python -m build` + `twine upload` → 用户 `pipx install toxi`。
 - **引擎 → Homebrew**：`packaging/homebrew/toxi.rb` 是 tap formula 模板，`depends_on "toxcore"` 让 `brew install` 顺带把 libtoxcore 装上。通过个人 tap 发布（`brew tap <owner>/<name>`）。
-- **插件 → marketplace**：`.claude-plugin/marketplace.json` 让本仓库本身就是个 marketplace。推到 GitHub 后别人就能 `/plugin marketplace add JefferyLee/cc-chat` 然后 `/plugin install toxi`。
+- **插件 → marketplace**：`.claude-plugin/marketplace.json` 让本仓库本身就是个 marketplace。推到 GitHub 后别人就能 `/plugin marketplace add JefferyLee/toxi` 然后 `/plugin install toxi`。
 
 ## v1 已知限制
 

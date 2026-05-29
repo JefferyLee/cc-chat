@@ -213,7 +213,7 @@ $ toxi send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的�
 ### 3.4 源码结构（当前）
 
 ```
-tox-chat-plugin/                 （GitHub: JefferyLee/cc-chat）
+tox-chat-plugin/                 （GitHub: JefferyLee/toxi）
 ├── pyproject.toml               # hatchling；依赖 click；extras [mcp] [dev]
 ├── README.md / README.zh-CN.md  # 双语用户文档
 ├── docs/                        # 双语设计文档（本 PRD 在此）
@@ -906,9 +906,9 @@ Stats (last 24h):
 
 | 层 | 名字 | 安装方式 |
 |---|---|---|
-| 引擎（PyPI）| `toxi` | 发布后：`pipx install toxi`；目前：`pipx install git+https://github.com/JefferyLee/cc-chat` |
+| 引擎（PyPI）| `toxi` | 发布后：`pipx install toxi`；目前：`pipx install git+https://github.com/JefferyLee/toxi` |
 | 引擎（Homebrew）| `toxi` | `brew install <owner>/tap/toxi` —— formula `depends_on "toxcore"`，所以 libtoxcore 会被一起拉下来。模板在 `packaging/homebrew/toxi.rb` |
-| Claude Code 插件 | `toxi` | `/plugin marketplace add JefferyLee/cc-chat` 然后 `/plugin install toxi@toxi`；开发期可用 `claude --plugin-dir ./claude-code-plugin` |
+| Claude Code 插件 | `toxi` | `/plugin marketplace add JefferyLee/toxi` 然后 `/plugin install toxi@toxi`；开发期可用 `claude --plugin-dir ./claude-code-plugin` |
 
 **为什么叫 `toxi`**（不叫 `toxi`）：内部原名 `toxi` 在 PyPI 已被无关项目占用，而且公开发布名里带 "Claude" 商标也最好避免。`toxi` 读作 "Claude Code chat"。
 

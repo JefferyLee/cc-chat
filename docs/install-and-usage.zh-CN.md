@@ -30,7 +30,7 @@ brew install toxcore pipx
 pipx ensurepath          # 然后重开终端，确保 `toxi` 在 PATH 上
 
 # 2) 装 toxi（带 MCP extra）
-pipx install 'git+https://github.com/JefferyLee/cc-chat#egg=toxi[mcp]'
+pipx install 'git+https://github.com/JefferyLee/toxi#egg=toxi[mcp]'
 
 # 3) 一键 setup：生成身份、启动 daemon、把底部状态栏指示器写进
 #    ~/.claude/settings.json（会留 .bak 备份）。可反复运行。
@@ -49,7 +49,7 @@ PyPI 发布以后第 2 步简化为 `pipx install 'toxi[mcp]'`。Homebrew tap �
 sudo apt install libtoxcore2 python3-pip pipx       # 按你的发行版调整
 
 # 2) 与 macOS 同样：
-pipx install 'git+https://github.com/JefferyLee/cc-chat#egg=toxi[mcp]'
+pipx install 'git+https://github.com/JefferyLee/toxi#egg=toxi[mcp]'
 toxi setup
 ```
 
@@ -245,7 +245,7 @@ toxi accept-intro alice carol --alias=co_carol
 
 ```bash
 # 在 Claude Code 会话内 —— 加 marketplace，再装：
-/plugin marketplace add JefferyLee/cc-chat
+/plugin marketplace add JefferyLee/toxi
 /plugin install toxi@toxi
 
 # 或者，本地有 clone 时直接加载（开发期）：
@@ -411,4 +411,4 @@ brew uninstall toxcore
 
 - [README](../README.zh-CN.md) —— 概览与命令一览表。
 - [PRD](prd.zh-CN.md) —— 完整设计，含 §4.12 Claude Code 集成 与 §4.13 发布与命名。
-- 仓库：https://github.com/JefferyLee/cc-chat
+- 仓库：https://github.com/JefferyLee/toxi

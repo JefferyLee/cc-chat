@@ -42,7 +42,7 @@ The `toxi` engine is a normal program (Python + a background daemon) that needs
 brew install <owner>/tap/toxi              # see packaging/homebrew/
 
 # or with pipx (install libtoxcore yourself first: brew install toxcore):
-pipx install git+https://github.com/JefferyLee/cc-chat      # from source, today
+pipx install git+https://github.com/JefferyLee/toxi      # from source, today
 pipx install toxi                                    # once published to PyPI
 # add MCP tools support with the extra:
 pipx install 'toxi[mcp]'
@@ -170,7 +170,7 @@ are a read-only **peek** — they do *not* mark messages read.
   Publish via a personal tap (`brew tap <owner>/<name>`).
 - **Plugin → marketplace:** `.claude-plugin/marketplace.json` makes this repo a
   marketplace. Push to GitHub and users run
-  `/plugin marketplace add JefferyLee/cc-chat` then `/plugin install toxi`.
+  `/plugin marketplace add JefferyLee/toxi` then `/plugin install toxi`.
 
 ## Limitations (v1)
 

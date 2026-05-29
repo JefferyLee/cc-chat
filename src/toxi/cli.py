@@ -415,7 +415,7 @@ def setup():
 
     # 4. Plugin install hint (Claude Code's plugin registry isn't safe to write from outside)
     click.echo("\nNext — install the Claude Code plugin (run inside Claude Code):")
-    click.echo("  /plugin marketplace add JefferyLee/cc-chat")
+    click.echo("  /plugin marketplace add JefferyLee/toxi")
     click.echo("  /plugin install toxi")
 
 

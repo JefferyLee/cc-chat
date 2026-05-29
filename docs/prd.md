@@ -213,7 +213,7 @@ $ toxi send bob --draft-with-claude "write a thank-you note for the review"
 ### 3.4 Source layout (current)
 
 ```
-tox-chat-plugin/                 (GitHub: JefferyLee/cc-chat)
+tox-chat-plugin/                 (GitHub: JefferyLee/toxi)
 ├── pyproject.toml               # hatchling; deps: click; extras: [mcp] [dev]
 ├── README.md / README.zh-CN.md  # bilingual user docs
 ├── docs/                        # bilingual design docs (this PRD lives here)
@@ -908,9 +908,9 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 
 | Layer | Name | How to install |
 |---|---|---|
-| Engine (PyPI) | `toxi` | `pipx install toxi` (after publish); today: `pipx install git+https://github.com/JefferyLee/cc-chat` |
+| Engine (PyPI) | `toxi` | `pipx install toxi` (after publish); today: `pipx install git+https://github.com/JefferyLee/toxi` |
 | Engine (Homebrew) | `toxi` | `brew install <owner>/tap/toxi` — the formula `depends_on "toxcore"` so libtoxcore comes along automatically. Template at `packaging/homebrew/toxi.rb` |
-| Claude Code plugin | `toxi` | `/plugin marketplace add JefferyLee/cc-chat` then `/plugin install toxi@toxi`; or `claude --plugin-dir ./claude-code-plugin` for dev |
+| Claude Code plugin | `toxi` | `/plugin marketplace add JefferyLee/toxi` then `/plugin install toxi@toxi`; or `claude --plugin-dir ./claude-code-plugin` for dev |
 
 **Why `toxi`** (not `toxi`): the original internal name `toxi` is already taken on PyPI by an unrelated project, and using the "Claude" trademark in a public distribution name is best avoided. `toxi` reads as "Claude Code chat".
 

@@ -18,7 +18,7 @@ class Toxi < Formula
   include Language::Python::Virtualenv
 
   desc "Decentralized messaging for AI coding agents, over Tox"
-  homepage "https://github.com/JefferyLee/cc-chat"
+  homepage "https://github.com/JefferyLee/toxi"
   url "https://files.pythonhosted.org/packages/source/.../toxi-0.2.0.tar.gz" # TODO
   sha256 "TODO_FILL_IN_AFTER_RELEASE"
   license "TODO" # choose and add a LICENSE file
