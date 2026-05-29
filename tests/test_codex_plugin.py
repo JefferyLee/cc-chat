@@ -83,6 +83,17 @@ def test_codex_hooks_avoid_stop_hook_completion_noise():
     assert "Stop" not in hooks
 
 
+def test_codex_stop_hook_compat_shim_is_silent(tmp_path):
+    res = _run_hook(
+        "stop_hook.py",
+        {"TOXI_BIN": _fake_toxi(tmp_path, "[]", "toxi: 1/1 online")},
+    )
+
+    assert res.returncode == 0
+    assert res.stdout == ""
+    assert res.stderr == ""
+
+
 def test_codex_unread_hook_emits_untrusted_context(tmp_path):
     msgs = json.dumps([{"alias": "bob", "content": "hello"}])
     res = _run_hook(
