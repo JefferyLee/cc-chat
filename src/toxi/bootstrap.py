@@ -12,9 +12,32 @@ from . import client, paths
 
 STATUSLINE_CMD = "toxi statusline"
 
+# Claude Code keeps installed plugins under ~/.claude/plugins/. The marketplace
+# name comes from .claude-plugin/marketplace.json (we declare it as "toxi") and
+# the plugin name from claude-code-plugin/.claude-plugin/plugin.json (also "toxi").
+PLUGIN_NAME = "toxi"
+MARKETPLACE_NAME = "toxi"
+
 
 def claude_settings_path() -> Path:
     return Path.home() / ".claude" / "settings.json"
+
+
+def claude_plugins_dir() -> Path:
+    return Path.home() / ".claude" / "plugins"
+
+
+def toxi_marketplace_clone() -> Path:
+    return claude_plugins_dir() / "marketplaces" / MARKETPLACE_NAME
+
+
+def toxi_plugin_cache_root() -> Path:
+    # Claude Code convention: cache/<marketplace>/<plugin>/<version>/
+    return claude_plugins_dir() / "cache" / MARKETPLACE_NAME / PLUGIN_NAME
+
+
+def installed_plugins_path() -> Path:
+    return claude_plugins_dir() / "installed_plugins.json"
 
 
 def _read_settings(p: Path) -> dict:

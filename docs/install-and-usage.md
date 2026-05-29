@@ -374,12 +374,13 @@ toxi reinstall      # stops daemon → pipx reinstall toxi → restarts daemon
 
 `reinstall` ignores version and re-runs the original install spec from scratch.
 
-If the plugin itself shipped changes too, also run in Claude Code:
+If the plugin itself shipped changes too, run this in your terminal, then `/reload-plugins` in Claude Code:
 
+```bash
+toxi reinstall-plugin       # fetches GitHub HEAD, refreshes Claude Code's plugin cache + registry
 ```
-/plugin uninstall toxi@toxi
-/plugin install toxi
-```
+
+(Without this helper you'd need to `/plugin uninstall toxi@toxi`, `/plugin marketplace remove toxi`, `/plugin marketplace add JefferyLee/toxi`, `/plugin install toxi@toxi`, `/reload-plugins` — five slash commands instead of one shell + one slash.)
 
 > **Maintainer note:** when shipping changes you want users to receive via `upgrade`, bump `version` in `pyproject.toml` before pushing. Without a bump, `pipx upgrade` sees no newer version and is a no-op — users would need to run `reinstall` instead.
 

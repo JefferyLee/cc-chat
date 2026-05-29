@@ -502,5 +502,77 @@ def reinstall():
     _pipx_lifecycle(["reinstall", "toxi"], "reinstall")
 
 
+def _git(cwd, *args) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True)
+
+
+@cli.command(name="reinstall-plugin")
+def reinstall_plugin():
+    """Refresh the Claude Code plugin from GitHub HEAD (then /reload-plugins in Claude Code)."""
+    marketplace = bootstrap.toxi_marketplace_clone()
+    if not marketplace.exists():
+        raise click.ClickException(
+            f"Marketplace clone not found at {marketplace}.\n"
+            "Run `/plugin marketplace add JefferyLee/toxi` in Claude Code first."
+        )
+
+    click.echo(f"→ Fetching latest plugin from GitHub into {marketplace}...")
+    r = _git(marketplace, "fetch", "origin")
+    if r.returncode != 0:
+        raise click.ClickException(f"git fetch failed:\n{r.stderr.rstrip()}")
+    r = _git(marketplace, "reset", "--hard", "origin/HEAD")
+    if r.returncode != 0:
+        raise click.ClickException(f"git reset failed:\n{r.stderr.rstrip()}")
+
+    plugin_src = marketplace / "claude-code-plugin"
+    new_meta = json.loads((plugin_src / ".claude-plugin" / "plugin.json").read_text())
+    new_version = new_meta["version"]
+    new_sha = _git(marketplace, "rev-parse", "HEAD").stdout.strip()
+
+    installed_p = bootstrap.installed_plugins_path()
+    if not installed_p.exists():
+        raise click.ClickException(
+            f"{installed_p} not found. Run `/plugin install toxi@toxi` in Claude Code first."
+        )
+    installed = json.loads(installed_p.read_text())
+    key = f"{bootstrap.PLUGIN_NAME}@{bootstrap.MARKETPLACE_NAME}"
+    entries = installed.get("plugins", {}).get(key, [])
+    if not entries:
+        raise click.ClickException(
+            f"Plugin '{key}' not installed. Run `/plugin install {key}` in Claude Code first."
+        )
+
+    old_entry = entries[0]
+    old_version, old_sha = old_entry["version"], old_entry["gitCommitSha"]
+    if old_sha == new_sha:
+        click.echo(f"✓ Plugin already at latest commit ({new_sha[:7]}). Nothing to do.")
+        return
+
+    # Place fresh files in the (possibly new) versioned cache dir.
+    new_cache_dir = bootstrap.toxi_plugin_cache_root() / new_version
+    if new_cache_dir.exists():
+        shutil.rmtree(new_cache_dir)
+    shutil.copytree(plugin_src, new_cache_dir)
+    click.echo(f"✓ Wrote fresh plugin files to {new_cache_dir}")
+
+    # Update the installed-plugins registry.
+    old_entry["version"] = new_version
+    old_entry["gitCommitSha"] = new_sha
+    old_entry["installPath"] = str(new_cache_dir)
+    old_entry["lastUpdated"] = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
+    installed_p.write_text(json.dumps(installed, indent=2))
+
+    # Clean up the now-orphaned old version dir (if version actually bumped).
+    if old_version != new_version:
+        old_cache = bootstrap.toxi_plugin_cache_root() / old_version
+        if old_cache.exists():
+            shutil.rmtree(old_cache)
+            click.echo(f"✓ Removed orphaned cache at {old_cache}")
+
+    click.echo(f"\n✓ Plugin: {old_version} ({old_sha[:7]}) → {new_version} ({new_sha[:7]})")
+    click.echo("\nIn Claude Code, run:")
+    click.echo("  /reload-plugins")
+
+
 if __name__ == "__main__":
     cli()
