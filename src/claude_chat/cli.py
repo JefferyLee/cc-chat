@@ -461,9 +461,8 @@ def teardown(purge):
     click.echo("  In terminal:     pipx uninstall cc-chat")
 
 
-@cli.command()
-def upgrade():
-    """Stop daemon, upgrade the engine via pipx, restart daemon."""
+def _pipx_lifecycle(pipx_args: list[str], label: str) -> None:
+    """Shared body for `upgrade` and `reinstall`: stop daemon → run pipx → restart."""
     was_running = bootstrap.daemon_running()
     if was_running:
         try:
@@ -472,16 +471,15 @@ def upgrade():
         except client.DaemonNotRunning:
             pass
 
-    click.echo("→ Running `pipx upgrade cc-chat`...")
+    click.echo(f"→ Running `pipx {' '.join(pipx_args)}`...")
     try:
-        r = subprocess.run(["pipx", "upgrade", "cc-chat"],
-                           capture_output=True, text=True)
+        r = subprocess.run(["pipx", *pipx_args], capture_output=True, text=True)
     except FileNotFoundError:
         raise click.ClickException("pipx not found on PATH.")
     click.echo(r.stdout.rstrip() or "(no output)")
     if r.returncode != 0:
         click.echo(r.stderr.rstrip(), err=True)
-        raise click.ClickException("pipx upgrade failed.")
+        raise click.ClickException(f"pipx {label} failed.")
 
     if was_running:
         pid = _spawn_daemon()
@@ -490,6 +488,18 @@ def upgrade():
     click.echo("\nIf the plugin shipped changes too, in Claude Code:")
     click.echo("  /plugin uninstall cc-chat@cc-chat")
     click.echo("  /plugin install cc-chat")
+
+
+@cli.command()
+def upgrade():
+    """Upgrade the engine via pipx — only fires when pyproject.toml version bumped."""
+    _pipx_lifecycle(["upgrade", "cc-chat"], "upgrade")
+
+
+@cli.command()
+def reinstall():
+    """Force-reinstall the engine via pipx — ignores version, always re-fetches."""
+    _pipx_lifecycle(["reinstall", "cc-chat"], "reinstall")
 
 
 if __name__ == "__main__":

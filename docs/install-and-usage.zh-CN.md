@@ -364,12 +364,22 @@ daemon 是**常驻**的：留着它跑。它**不会**自动重启——如果�
 cc-chat upgrade        # 停 daemon → pipx upgrade cc-chat → 重启 daemon
 ```
 
+`upgrade` **只在 `pyproject.toml` 里的版本号 bump 过**（比如 0.1.0 → 0.1.1）才会真正拉新代码。如果你被告知某个没 bump 版本的中间修复要拿，用强制重装：
+
+```bash
+cc-chat reinstall      # 停 daemon → pipx reinstall cc-chat → 重启 daemon
+```
+
+`reinstall` 不看版本号，按原始 install spec 完整重做一遍。
+
 如果插件本身也有更新，在 Claude Code 里再跑：
 
 ```
 /plugin uninstall cc-chat@cc-chat
 /plugin install cc-chat
 ```
+
+> **维护者备注**：要让用户能用 `upgrade` 拉到的改动，push 前要在 `pyproject.toml` 里 bump `version`。不 bump 的话，`pipx upgrade` 看不到新版本，是 no-op——用户得改用 `reinstall`。
 
 ---
 

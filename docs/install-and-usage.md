@@ -366,12 +366,22 @@ The daemon is **persistent**: leave it running. It auto-restarts nothing — if 
 cc-chat upgrade        # stops daemon → pipx upgrade cc-chat → restarts daemon
 ```
 
-If the plugin itself shipped changes, also run in Claude Code:
+`upgrade` only fetches new code when `pyproject.toml`'s version has bumped (e.g. 0.1.0 → 0.1.1). If you've been told to grab an in-between fix that didn't get a version bump, force-refetch instead:
+
+```bash
+cc-chat reinstall      # stops daemon → pipx reinstall cc-chat → restarts daemon
+```
+
+`reinstall` ignores version and re-runs the original install spec from scratch.
+
+If the plugin itself shipped changes too, also run in Claude Code:
 
 ```
 /plugin uninstall cc-chat@cc-chat
 /plugin install cc-chat
 ```
+
+> **Maintainer note:** when shipping changes you want users to receive via `upgrade`, bump `version` in `pyproject.toml` before pushing. Without a bump, `pipx upgrade` sees no newer version and is a no-op — users would need to run `reinstall` instead.
 
 ---
 

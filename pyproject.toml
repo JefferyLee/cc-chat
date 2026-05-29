@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 # Distribution name (PyPI / Homebrew). The import package stays `claude_chat`
 # and the CLI commands stay `chat` / `chat-daemon` — neither needs to match this.
 name = "cc-chat"
-version = "0.1.0"
+version = "0.1.1"
 description = "Decentralized, encrypted, asynchronous CLI chat for Claude Code, over the Tox protocol"
 readme = "README.md"
 requires-python = ">=3.10"
