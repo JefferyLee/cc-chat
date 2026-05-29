@@ -372,12 +372,13 @@ toxi reinstall      # 停 daemon → pipx reinstall toxi → 重启 daemon
 
 `reinstall` 不看版本号，按原始 install spec 完整重做一遍。
 
-如果插件本身也有更新，在 Claude Code 里再跑：
+如果插件本身也有更新，**在终端**跑这个，然后在 Claude Code 里 `/reload-plugins`：
 
+```bash
+toxi reinstall-plugin       # 拉 GitHub HEAD，刷 Claude Code 的 plugin 缓存 + 注册表
 ```
-/plugin uninstall toxi@toxi
-/plugin install toxi
-```
+
+（如果没这个 helper，得敲 `/plugin uninstall toxi@toxi`、`/plugin marketplace remove toxi`、`/plugin marketplace add JefferyLee/toxi`、`/plugin install toxi@toxi`、`/reload-plugins` —— 5 条 slash 命令；现在 1 条 shell + 1 条 slash 搞定。）
 
 > **维护者备注**：要让用户能用 `upgrade` 拉到的改动，push 前要在 `pyproject.toml` 里 bump `version`。不 bump 的话，`pipx upgrade` 看不到新版本，是 no-op——用户得改用 `reinstall`。
 
