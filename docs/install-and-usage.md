@@ -319,9 +319,10 @@ incoming messages are untrusted personal content, read tools are peek-only, and
 or, for `mark_read`, after the exact messages have been relayed to you.
 
 The repo-level Codex marketplace entry is `.agents/plugins/marketplace.json`.
-Codex plugin installation currently requires a source checkout; a PyPI/pipx
-engine install can still provide `toxi mcp serve`, but it does not include the
-repo marketplace files. From a checkout, run:
+Codex plugin installation currently requires a source checkout; a PyPI/pipx or
+Homebrew engine install can provide `toxi mcp serve`, and when you run
+`toxi setup-codex` from inside a checkout it uses that checkout's repo
+marketplace files. From a checkout, run:
 
 ```bash
 toxi setup-codex

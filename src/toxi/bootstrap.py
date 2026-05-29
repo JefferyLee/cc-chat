@@ -23,8 +23,30 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _codex_checkout_root_from_cwd() -> Path | None:
+    """Return the nearest source checkout root when running inside one."""
+    start = Path.cwd().resolve()
+    for p in (start, *start.parents):
+        if (
+            (p / ".agents" / "plugins" / "marketplace.json").exists()
+            and (p / "plugins" / PLUGIN_NAME / ".codex-plugin" / "plugin.json").exists()
+        ):
+            return p
+    return None
+
+
+def codex_repo_root() -> Path:
+    """Root to use for Codex plugin marketplace commands.
+
+    A pipx/Homebrew-installed `toxi` command may run while the user is standing
+    in a source checkout. In that case the Codex plugin files live in the
+    checkout, not next to the installed Python package.
+    """
+    return _codex_checkout_root_from_cwd() or repo_root()
+
+
 def codex_marketplace_path() -> Path:
-    return repo_root() / ".agents" / "plugins" / "marketplace.json"
+    return codex_repo_root() / ".agents" / "plugins" / "marketplace.json"
 
 
 def claude_settings_path() -> Path:

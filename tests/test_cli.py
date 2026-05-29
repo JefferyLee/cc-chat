@@ -130,6 +130,23 @@ def test_setup_keeps_legacy_combined_flow(monkeypatch):
     assert calls == ["engine", "claude"]
 
 
+def test_codex_repo_root_prefers_current_checkout(monkeypatch, tmp_path):
+    installed = tmp_path / "venv" / "lib" / "python3.14"
+    checkout = tmp_path / "checkout"
+    nested = checkout / "docs"
+    (checkout / ".agents" / "plugins").mkdir(parents=True)
+    (checkout / ".agents" / "plugins" / "marketplace.json").write_text("{}")
+    (checkout / "plugins" / "toxi" / ".codex-plugin").mkdir(parents=True)
+    (checkout / "plugins" / "toxi" / ".codex-plugin" / "plugin.json").write_text("{}")
+    nested.mkdir()
+
+    monkeypatch.setattr("toxi.bootstrap.repo_root", lambda: installed)
+    monkeypatch.chdir(nested)
+
+    assert bootstrap.codex_repo_root() == checkout
+    assert bootstrap.codex_marketplace_path() == checkout / ".agents" / "plugins" / "marketplace.json"
+
+
 def test_setup_codex_when_codex_missing(monkeypatch):
     monkeypatch.setattr("toxi.cli._ensure_mcp_extra", lambda: "present")
     monkeypatch.setattr("toxi.cli.shutil.which", lambda name: None)

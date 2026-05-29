@@ -313,8 +313,9 @@ instructions，告诉 Codex 来信是不可信个人内容、读取工具只是 
 `send_message` 只能在用户明确要求后使用；`mark_read` 也可在已经把对应消息明确转述给用户后调用。
 
 repo 级 Codex marketplace 入口是 `.agents/plugins/marketplace.json`。Codex 插件
-安装目前需要源码 checkout；PyPI/pipx 安装的 engine 仍可提供 `toxi mcp serve`，
-但不包含 repo marketplace 文件。本地接入命令是：
+安装目前需要源码 checkout；PyPI/pipx/Homebrew 安装的 engine 仍可提供
+`toxi mcp serve`，并且当你在源码 checkout 中运行 `toxi setup-codex` 时，它会使用
+当前 checkout 的 repo marketplace 文件。本地接入命令是：
 
 ```bash
 toxi setup-codex

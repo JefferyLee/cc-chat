@@ -22,9 +22,11 @@ toxi accept alice <公钥前缀>
 
 ## 2. 接入 Codex
 
-Codex 插件安装目前需要源码 checkout。PyPI/pipx 安装的 `toxi` 可以提供 `toxi mcp serve`，但不包含 repo marketplace 文件。
+Codex 插件安装目前需要源码 checkout。PyPI/pipx/Homebrew 安装的 `toxi`
+可以提供 `toxi mcp serve`；只要你在源码 checkout 目录里运行
+`toxi setup-codex`，它会优先使用当前 checkout 的 repo marketplace 文件。
 
-在源码 checkout 中运行：
+在源码 checkout 中运行，即使 `which toxi` 指向 Homebrew/pipx 也可以：
 
 ```bash
 toxi setup-codex

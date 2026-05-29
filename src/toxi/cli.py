@@ -495,6 +495,7 @@ def _codex_remove_step(args: list[str], ok: str, warning: str, manual: str, abse
 @cli.command(name="setup-codex")
 def setup_codex():
     """Wire toxi into Codex: MCP server plus the local Codex plugin."""
+    codex_root = bootstrap.codex_repo_root()
     marketplace = bootstrap.codex_marketplace_path()
     mcp_status = _ensure_mcp_extra()
     if mcp_status == "present":
@@ -512,7 +513,7 @@ def setup_codex():
         click.echo("\n⚠ Codex CLI not found on PATH. After installing Codex, run:")
         click.echo("  codex mcp add toxi -- toxi mcp serve")
         if marketplace.exists():
-            click.echo(f"  codex plugin marketplace add {bootstrap.repo_root()}")
+            click.echo(f"  codex plugin marketplace add {codex_root}")
             click.echo("  codex plugin add toxi@toxi")
         else:
             click.echo(
@@ -534,10 +535,10 @@ def setup_codex():
 
     if marketplace.exists():
         _codex_step(
-            ["plugin", "marketplace", "add", str(bootstrap.repo_root())],
+            ["plugin", "marketplace", "add", str(codex_root)],
             "✓ Registered this checkout as a Codex plugin marketplace.",
             "Could not register this checkout as a Codex plugin marketplace.",
-            f"codex plugin marketplace add {bootstrap.repo_root()}",
+            f"codex plugin marketplace add {codex_root}",
             "✓ Codex plugin marketplace already registered.",
         )
         _codex_step(
@@ -568,6 +569,7 @@ def setup_codex():
 def doctor_codex():
     """Check the Codex MCP/plugin wiring without changing Codex config."""
     failures: list[str] = []
+    codex_root = bootstrap.codex_repo_root()
     marketplace = bootstrap.codex_marketplace_path()
     if marketplace.exists():
         click.echo(f"✓ Local Codex marketplace file found: {marketplace}")
@@ -599,7 +601,7 @@ def doctor_codex():
             click.echo("✓ Codex plugin marketplace `toxi` is registered.")
         else:
             failures.append("Codex plugin marketplace `toxi` is not registered")
-            click.echo(f"⚠ Codex plugin marketplace `toxi` is not registered. Run: codex plugin marketplace add {bootstrap.repo_root()}")
+            click.echo(f"⚠ Codex plugin marketplace `toxi` is not registered. Run: codex plugin marketplace add {codex_root}")
 
         ok, out = _codex_stdout(["plugin", "list"])
         if ok and _plugin_installed(out, "toxi@toxi"):
