@@ -378,6 +378,30 @@ def mcp_serve():
         )
 
 
+def _ensure_mcp_extra() -> str:
+    """If the `mcp` package isn't in our venv, pipx-inject it.
+
+    Without this, `toxi mcp serve` crashes on import, Claude Code's MCP
+    spawn fails silently, and the natural-language tool path is dead.
+
+    Returns: "present" | "installed" | "failed".
+    """
+    try:
+        import mcp  # noqa: F401
+        return "present"
+    except ImportError:
+        pass
+    try:
+        r = subprocess.run(["pipx", "inject", "toxi", "mcp"],
+                           capture_output=True, text=True)
+    except FileNotFoundError:
+        return "failed"
+    if r.returncode != 0:
+        click.echo(r.stderr.rstrip(), err=True)
+        return "failed"
+    return "installed"
+
+
 @cli.command()
 def setup():
     """One-shot setup: init identity, start daemon, wire Claude Code statusLine."""
@@ -399,7 +423,20 @@ def setup():
         pid = _spawn_daemon()
         click.echo(f"✓ Daemon started (PID {pid}).")
 
-    # 3. statusLine
+    # 3. MCP extra (needed by Claude Code's natural-language tool path)
+    mcp_status = _ensure_mcp_extra()
+    if mcp_status == "present":
+        click.echo("✓ MCP extra already installed.")
+    elif mcp_status == "installed":
+        click.echo("✓ MCP extra installed via `pipx inject toxi mcp`.")
+    else:
+        click.echo(
+            "⚠ Could not install the MCP extra. Run manually:\n"
+            "    pipx inject toxi mcp\n"
+            "  (without it, Claude Code's natural-language tool calls won't work.)"
+        )
+
+    # 4. statusLine
     sp = bootstrap.claude_settings_path()
     result = bootstrap.ensure_statusline()
     if result == "added":
@@ -413,7 +450,7 @@ def setup():
             f'{{"statusLine":{{"type":"command","command":"toxi statusline"}}}}'
         )
 
-    # 4. Plugin install hint (Claude Code's plugin registry isn't safe to write from outside)
+    # 5. Plugin install hint (Claude Code's plugin registry isn't safe to write from outside)
     click.echo("\nNext — install the Claude Code plugin (run inside Claude Code):")
     click.echo("  /plugin marketplace add JefferyLee/toxi")
     click.echo("  /plugin install toxi")
