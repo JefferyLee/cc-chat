@@ -10,7 +10,7 @@ import time
 
 import click
 
-from . import bootstrap, client, paths
+from . import __version__, bootstrap, client, paths
 from .tox import Tox
 
 _CONNECTION = {0: "offline", 1: "connected (TCP)", 2: "connected (UDP)"}
@@ -35,6 +35,7 @@ def _emit(ctx, data) -> bool:
 
 
 @click.group()
+@click.version_option(__version__, "--version", "-V", prog_name="toxi")
 @click.option("--json", "as_json", is_flag=True, help="Output machine-readable JSON.")
 @click.pass_context
 def cli(ctx, as_json):
