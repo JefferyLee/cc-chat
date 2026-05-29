@@ -55,7 +55,8 @@ toxi doctor-codex
 
 Codex 没有 Claude Code 那种底部常驻 `statusLine`。toxi 的 Codex 插件用
 Codex hook JSON 显示同样的摘要：SessionStart 通过 `additionalContext` 注入，
-Stop 通过 Codex Stop hook 的 `systemMessage` 输出。
+Stop 通过 Codex Stop hook 的 `systemMessage` 输出，并设置 `suppressOutput`
+隐藏通用的 `Stop hook (completed)` 提示行。
 
 ```text
 toxi: 📬 2 from mini2, jeff · 2/2 online
@@ -70,7 +71,7 @@ toxi: 📬 2 from mini2, jeff · 2/2 online
 显示时机：
 
 - 会话开始或恢复时：通过 SessionStart hook 显示 `toxi statusline` 摘要，并把未读消息作为上下文注入给 Codex
-- 每轮结束时：通过 Stop hook 显示 `toxi statusline` 摘要
+- 每轮结束时：通过 Stop hook 显示 `toxi statusline` 摘要，同时隐藏通用的 hook completed 提示
 
 如果没有未读，可能显示：
 

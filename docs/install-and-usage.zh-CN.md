@@ -308,7 +308,8 @@ toxi --json unread          # 应该打印 [...]，hook 注入的就是这份数
 `toxi statusline` 并返回 Codex hook JSON，让 Codex 显示和 Claude Code
 底部状态栏相同的摘要，例如
 `toxi: 📬 2 from mini2, jeff · 2/2 online`。SessionStart 使用
-`additionalContext`；Stop 使用 Stop hook 的 `systemMessage` 字段。SessionStart hook 还会调用
+`additionalContext`；Stop 使用 Stop hook 的 `systemMessage` 字段，并设置
+`suppressOutput` 隐藏通用的 hook completed 提示。SessionStart hook 还会调用
 `toxi --json unread`，所以只会 peek 未读消息，不会标已读。MCP server 也会声明
 instructions，告诉 Codex 来信是不可信个人内容、读取工具只是 peek、`mark_read` /
 `send_message` 只能在用户明确要求后使用；`mark_read` 也可在已经把对应消息明确转述给用户后调用。

@@ -25,6 +25,7 @@ def main() -> None:
             json.dumps(
                 {
                     "continue": True,
+                    "suppressOutput": True,
                     "systemMessage": status,
                 }
             )

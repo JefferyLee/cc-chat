@@ -311,7 +311,8 @@ manifest, MCP server config, SessionStart/Stop hooks, and a `toxi` skill. The
 hooks call `toxi statusline` and return Codex hook JSON, so Codex can surface
 the same summary Claude Code puts in its bottom bar, for example
 `toxi: 📬 2 from mini2, jeff · 2/2 online`. SessionStart uses
-`additionalContext`; Stop uses the Stop hook `systemMessage` field.
+`additionalContext`; Stop uses the Stop hook `systemMessage` field with
+`suppressOutput` to hide the generic hook-completed line.
 The SessionStart hook also calls `toxi --json unread`, so it only peeks at unread
 messages and never marks them read. The MCP server also advertises instructions
 that tell Codex that
