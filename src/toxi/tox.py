@@ -84,6 +84,8 @@ def _setup_signatures(lib: _C.CDLL) -> None:
     lib.tox_friend_add.argtypes = [_C.c_void_p, _C.c_char_p, _C.c_char_p, _C.c_size_t, _C.c_void_p]
     lib.tox_friend_add_norequest.restype = _C.c_uint32
     lib.tox_friend_add_norequest.argtypes = [_C.c_void_p, _C.c_char_p, _C.c_void_p]
+    lib.tox_friend_delete.restype = _C.c_bool
+    lib.tox_friend_delete.argtypes = [_C.c_void_p, _C.c_uint32, _C.c_void_p]
     lib.tox_friend_by_public_key.restype = _C.c_uint32
     lib.tox_friend_by_public_key.argtypes = [_C.c_void_p, _C.c_char_p, _C.c_void_p]
     lib.tox_friend_send_message.restype = _C.c_uint32
@@ -179,6 +181,9 @@ class Tox:
 
     def friend_add_norequest(self, public_key: bytes) -> int:
         return _lib.tox_friend_add_norequest(self._ptr, public_key, None)
+
+    def friend_delete(self, friend_number: int) -> bool:
+        return _lib.tox_friend_delete(self._ptr, friend_number, None)
 
     def friend_by_public_key(self, public_key: bytes) -> int:
         """Friend number for a known public key, or NO_FRIEND (0xFFFFFFFF)."""

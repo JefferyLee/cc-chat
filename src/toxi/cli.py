@@ -131,6 +131,19 @@ def add(alias, tox_id):
 
 
 @cli.command()
+@click.argument("alias")
+@click.option("--yes", "-y", is_flag=True, help="Skip the confirmation prompt.")
+def remove(alias, yes):
+    """Remove a contact and delete your message history with them."""
+    if not yes:
+        click.confirm(
+            f"Remove '{alias}' and delete all messages with them?", abort=True
+        )
+    _call("remove_contact", {"alias": alias})
+    click.echo(f"✓ Removed {alias}.")
+
+
+@cli.command()
 @click.pass_context
 def requests(ctx):
     """Show pending friend requests."""

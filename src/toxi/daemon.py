@@ -61,6 +61,7 @@ class Daemon:
             "set_name": self._set_name,
             "get_status": self._get_status,
             "add_contact": self._add_contact,
+            "remove_contact": self._remove_contact,
             "accept_request": self._accept_request,
             "list_contacts": self._list_contacts,
             "list_requests": self._list_requests,
@@ -399,6 +400,27 @@ class Daemon:
             "VALUES (?, ?, ?, ?, 'manual', ?)",
             (tox_id, public_key, alias, int(time.time()), fn),
         )
+        self.db.commit()
+        self._save_state()
+        return {"alias": alias}
+
+    def _remove_contact(self, params: dict) -> dict:
+        alias = params.get("alias", "").strip()
+        if not alias:
+            raise RpcError("INVALID_ALIAS", "an alias is required")
+        row = self.db.execute(
+            "SELECT id, public_key FROM contacts WHERE alias=?", (alias,)
+        ).fetchone()
+        if row is None:
+            raise RpcError("CONTACT_NOT_FOUND", f"no contact named {alias!r}")
+        # Resolve friend_number via public_key (DB column can be stale across restarts).
+        fn = self.tox.friend_by_public_key(bytes.fromhex(row["public_key"]))
+        if fn != NO_FRIEND:
+            self.tox.friend_delete(fn)
+        # FK requires clearing children before the contact row.
+        self.db.execute("DELETE FROM messages WHERE contact_id=?", (row["id"],))
+        self.db.execute("DELETE FROM pending_introductions WHERE from_contact_id=?", (row["id"],))
+        self.db.execute("DELETE FROM contacts WHERE id=?", (row["id"],))
         self.db.commit()
         self._save_state()
         return {"alias": alias}

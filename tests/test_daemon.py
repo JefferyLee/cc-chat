@@ -190,6 +190,34 @@ def test_add_rejects_duplicate_alias(home):
         _stop_daemon(t)
 
 
+def test_remove_contact_clears_history_and_frees_alias(home):
+    foreign = _foreign_tox_id()
+    t = _start_daemon()
+    try:
+        client.request("add_contact", {"alias": "bob", "tox_id": foreign})
+        client.request("send_message", {"alias": "bob", "body": "hi"})
+
+        client.request("remove_contact", {"alias": "bob"})
+        assert client.request("list_contacts")["contacts"] == []
+        assert client.request("list_queue")["queue"] == []
+
+        # Alias is free again; re-adding the same Tox ID must succeed.
+        client.request("add_contact", {"alias": "bob", "tox_id": foreign})
+        assert len(client.request("list_contacts")["contacts"]) == 1
+    finally:
+        _stop_daemon(t)
+
+
+def test_remove_unknown_contact_errors(home):
+    t = _start_daemon()
+    try:
+        with pytest.raises(client.DaemonError) as ei:
+            client.request("remove_contact", {"alias": "ghost"})
+        assert ei.value.code == "CONTACT_NOT_FOUND"
+    finally:
+        _stop_daemon(t)
+
+
 def test_list_requests_empty(home):
     t = _start_daemon()
     try:
