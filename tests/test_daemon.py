@@ -1,8 +1,8 @@
 """Daemon skeleton integration tests.
 
 These run a real daemon (in a thread, with a temp config dir) and talk to it
-over the IPC socket. get_me/set_name/get_status all work offline, so no DHT
-connectivity is required — the tests stay fast.
+over the IPC socket. They do not require DHT connectivity, but they construct
+real libtoxcore handles and are skipped unless pytest is run with --run-toxcore.
 """
 import os
 import shutil
@@ -12,9 +12,12 @@ import time
 
 import pytest
 
-from toxi import client, envelope
+from toxi import client, db, envelope
 from toxi.daemon import Daemon
 from toxi.tox import Tox
+
+
+pytestmark = pytest.mark.toxcore
 
 
 def _foreign_tox_id() -> str:
@@ -65,6 +68,40 @@ def _stop_daemon(t):
     except Exception:
         pass
     t.join(timeout=5)
+
+
+def test_mark_read_counts_only_unread_incoming_messages(tmp_path):
+    conn = db.connect(tmp_path / "chat.db")
+    d = object.__new__(Daemon)
+    d.db = conn
+    now = int(time.time())
+    try:
+        conn.execute(
+            "INSERT INTO contacts (public_key, alias, added_at) VALUES (?, ?, ?)",
+            ("AB" * 32, "bob", now),
+        )
+        cid = conn.execute("SELECT id FROM contacts WHERE alias='bob'").fetchone()["id"]
+        conn.executemany(
+            "INSERT INTO messages (msg_uuid, contact_id, direction, msg_type, content, "
+            "created_at, status, read_at) VALUES (?, ?, ?, 'text', ?, ?, ?, ?)",
+            [
+                ("in-unread", cid, "in", "hi", now, "received", None),
+                ("in-read", cid, "in", "seen", now, "read", now),
+                ("out", cid, "out", "sent", now, "sent", None),
+            ],
+        )
+        conn.commit()
+
+        res = d._mark_read({"msg_uuids": ["in-unread", "in-read", "out", "missing"]})
+
+        assert res == {"marked": 1}
+        row = conn.execute(
+            "SELECT status, read_at FROM messages WHERE msg_uuid='in-unread'"
+        ).fetchone()
+        assert row["status"] == "read"
+        assert row["read_at"] is not None
+    finally:
+        conn.close()
 
 
 def test_get_me_set_name_status(home):

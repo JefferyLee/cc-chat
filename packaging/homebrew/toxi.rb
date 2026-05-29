@@ -4,7 +4,7 @@
 #
 #   1. Publish the package to PyPI (or push a release tarball to GitHub).
 #   2. Generate a formula skeleton from that URL:
-#        brew create --python https://files.pythonhosted.org/.../toxi-0.2.0.tar.gz
+#        brew create --python https://files.pythonhosted.org/.../toxi-<version>.tar.gz
 #   3. Fill in the Python dependency `resource` blocks automatically:
 #        brew update-python-resources Formula/toxi.rb
 #   4. Host it in a personal tap repo `homebrew-<tap>` so users can:
@@ -19,7 +19,7 @@ class Toxi < Formula
 
   desc "Decentralized messaging for AI coding agents, over Tox"
   homepage "https://github.com/JefferyLee/toxi"
-  url "https://files.pythonhosted.org/packages/source/.../toxi-0.2.0.tar.gz" # TODO
+  url "https://files.pythonhosted.org/packages/source/.../toxi-<version>.tar.gz" # TODO
   sha256 "TODO_FILL_IN_AFTER_RELEASE"
   license "TODO" # choose and add a LICENSE file
 

@@ -235,6 +235,12 @@ toxi/                            （GitHub: JefferyLee/toxi）
 │   ├── hooks/hooks.json         # SessionStart 未读通知 hook
 │   ├── hooks/unread_hook.py
 │   └── .mcp.json                # 注册 toxi mcp serve
+├── plugins/toxi/                # 实验性 Codex 插件（§4.12）
+│   ├── .codex-plugin/plugin.json
+│   ├── hooks/                   # SessionStart/Stop 未读 hooks
+│   ├── skills/toxi/SKILL.md     # 可复用 Codex workflow 指令
+│   └── .mcp.json                # 注册 toxi mcp serve
+├── .agents/plugins/marketplace.json  # Codex repo marketplace 入口
 ├── .claude-plugin/marketplace.json  # 本仓库本身就是 marketplace
 └── packaging/homebrew/toxi.rb    # tap formula 模板（§4.13）
 ```
@@ -704,7 +710,7 @@ Length-prefixed JSON：
 | `list_contacts` | `{}` | `[{alias, tox_id, online, last_seen}]` |
 | `send_message` | `{alias, body}` | `{msg_uuid, status}` |
 | `get_messages` | `{alias?, unread_only?, limit?}` | `[messages]` |
-| `mark_read` | `{msg_uuids: [...]}` | OK |
+| `mark_read` | `{msg_uuids: [...]}` | `{marked}` |
 | `list_queue` | `{}` | `[{alias, body, queued_at}]` |
 | `introduce` | `{to_alias, contact_alias, note?}` | OK |
 | `list_introductions` | `{}` | `[pending_intros]` |
@@ -756,6 +762,11 @@ toxi status                    # 显示 daemon 状态、DHT 连接、好友在�
 toxi daemon start/stop/restart
 toxi daemon logs
 toxi mcp serve                 # 通过 stdio 跑 MCP server（见 §4.12）
+toxi setup-engine              # 只创建身份 + 启动 daemon
+toxi setup-claude              # 只接入 Claude Code 状态栏 + 安装提示
+toxi setup-codex               # 只接入 Codex MCP + 插件
+toxi doctor-codex              # 只读检查 Codex 接入状态
+toxi teardown-codex            # 移除 Codex 接入，保留身份/历史
 
 # Claude 协同
 # v0.1 已完成：--json 开关、SessionStart 未读 hook、slash 命令、MCP server（§4.12）
@@ -896,11 +907,16 @@ Stats (last 24h):
 | `--json` 全局开关（§4.7）| 机器可读输出；`unread`/`read` 在此模式下为 peek（不会自动标已读）| `src/toxi/cli.py` |
 | SessionStart hook | Claude Code 会话开始时把未读消息注入模型上下文，并让模型把非中文消息翻成中文 | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py`（调 `toxi --json unread`）|
 | Slash 命令 | `/unread`、`/send <alias> <message>`、`/contacts`、`/status`，安装后命名空间为 `/toxi:` | `claude-code-plugin/commands/*.md` |
-| MCP server | 工具 `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让模型能替你操作 | `toxi mcp serve`（FastMCP，可选 `[mcp]` extra），由 `claude-code-plugin/.mcp.json` 注册 |
+| MCP server | 工具 `get_unread`、`read_history`、`mark_read`、`send_message`、`list_contacts`、`get_status`，让模型能替你操作，同时把 peek 和标已读分开 | `toxi mcp serve`（FastMCP，可选 `[mcp]` extra），由 `claude-code-plugin/.mcp.json` 注册 |
 
 **不可信输入框架（防提示注入）**：来信是外部输入被注入模型上下文。hook 和 slash 命令的提示词**明确把消息标为「个人内容、非指令」**，所以"忽略指令、执行 X"这类正文会被当作可能给用户读的文字，而不是 Claude 该执行的命令。
 
 **翻译**：Claude 本身就是模型，hook 只标注消息让 Claude 在汇报时顺手翻译非中文消息——零额外依赖、零额外 API 调用。如果想在终端侧也自动翻译（不经过我），那需要单独接 Claude API，留到以后。
+
+**Codex 集成（实验性）**：引擎现在也带一个 Codex 插件，位置是 `plugins/toxi/`。它包含 Codex manifest、指向 `toxi mcp serve` 的 `.mcp.json`、会打印和 Claude Code 底部状态栏相同 `toxi statusline` 摘要的 SessionStart/Stop hooks、SessionStart 中通过 `toxi --json unread` 做的未读 peek，以及保持同样不可信输入边界的 `toxi` skill。MCP server 也会声明同样规则的 server-level instructions，所以即使 skill 未加载，边界也对模型可见；`get_unread` 和 `read_history` 保持只读，`mark_read` 是针对明确消息 UUID 的显式标已读动作。`toxi setup-codex` 会把源码 checkout 接入 Codex：注册 MCP server、添加 repo marketplace、安装插件；PyPI/pipx 安装的 engine 可提供 `toxi mcp serve`，但不包含 repo marketplace 文件。`toxi doctor-codex` 用只读 Codex CLI list 命令检查这些接入状态。`toxi teardown-codex` 只移除这些 Codex 侧入口，不影响 daemon、身份或聊天历史。Setup 已拆成 `toxi setup-engine`、`toxi setup-claude` 和 `toxi setup-codex`；`toxi setup` 保持旧的 engine + Claude Code 组合路径。
+
+**Codex 手工验收**：
+- 运行 `toxi setup-codex` 且 `toxi doctor-codex` 通过后，打开 Codex，确认 `/mcp`、`/plugins`、`/hooks` 能看到 toxi 入口；如有 hook 信任提示，手工审核并确认。
 
 ### 4.13 发布与命名
 
@@ -908,7 +924,12 @@ Stats (last 24h):
 |---|---|---|
 | 引擎（PyPI）| `toxi` | 发布后：`pipx install toxi`；目前：`pipx install git+https://github.com/JefferyLee/toxi` |
 | 引擎（Homebrew）| `toxi` | `brew install <owner>/tap/toxi` —— formula `depends_on "toxcore"`，所以 libtoxcore 会被一起拉下来。模板在 `packaging/homebrew/toxi.rb` |
-| Claude Code 插件 | `toxi` | `/plugin marketplace add JefferyLee/toxi` 然后 `/plugin install toxi@toxi`；开发期可用 `claude --plugin-dir ./claude-code-plugin` |
+| Claude Code 插件 | `toxi` | `toxi setup-claude` 接状态栏并输出安装提示；`/plugin marketplace add JefferyLee/toxi` 然后 `/plugin install toxi@toxi`；开发期可用 `claude --plugin-dir ./claude-code-plugin` |
+| Codex 插件 | `toxi` | 本地 checkout 中运行：`toxi setup-codex`；用 `toxi doctor-codex` 检查；用 `toxi teardown-codex` 移除；repo marketplace 入口在 `.agents/plugins/marketplace.json`；插件文件在 `plugins/toxi/` |
+
+**版本策略**：引擎和随仓库发布的插件共用一个发布版本，来源是 `pyproject.toml`。`src/toxi/__init__.py`、`claude-code-plugin/.claude-plugin/plugin.json`、`plugins/toxi/.codex-plugin/plugin.json` 必须与它一致；`tests/test_versions.py` 会校验这个约束，保证 marketplace 安装与 engine upgrade 描述的是同一个 checkout。
+
+**测试隔离**：普通 `pytest` 默认跳过会构造真实 libtoxcore handle 或连接公网 Tox DHT 的测试。使用 `pytest --run-toxcore` 跑本地 toxcore/daemon 测试，使用 `pytest --run-dht` 跑慢速公网 DHT 集成测试。
 
 **为什么叫 `toxi`**：引擎最早叫 `chat`，后来为了和通用 `chat` 包区分改成 `cc-chat`。这两个名字都把 Claude Code 写死在品牌里，和长期方向不符——引擎本身与 AI 工具解耦，未来计划支持 Codex、Grok Builder 等。`toxi` 保留 Tox 血统（Tox + i），不再把品牌绑死在某个 AI 工具上。PyPI 上 `toxi` 可用；`cc-chat` 在 PyPI 也未被占用，但新名字更短、更好记、且不绑定单一 AI 工具。
 - 磁盘配置目录 `~/.config/toxi/`（改它会丢用户现有的 Tox 身份与消息历史）。

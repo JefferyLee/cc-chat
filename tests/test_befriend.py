@@ -1,5 +1,5 @@
 """Milestone (step 4): two independent daemons befriend each other over the real
-Tox DHT. Marked `dht` (slow, network-bound) — run with `pytest -m dht`.
+Tox DHT. Marked `dht` (slow, network-bound) — run with `pytest --run-dht`.
 
 Two daemons can't share one process (TOXI_HOME is a single env var), so we
 run each as its own subprocess with its own home and talk to each by socket path.

@@ -5,6 +5,8 @@ the right method/params (with client.request faked — no daemon needed). The
 FastMCP build is checked only if the optional `mcp` extra is installed.
 """
 import pytest
+import sys
+import types
 
 from toxi import mcp_server
 
@@ -16,6 +18,7 @@ def test_tools_call_expected_rpcs(monkeypatch):
         calls.append((method, params))
         return {
             "get_messages": {"messages": [{"alias": "bob", "content": "hi"}]},
+            "mark_read": {"marked": 1},
             "send_message": {"status": "queued"},
             "list_contacts": {"contacts": []},
             "get_status": {"queue_size": 0},
@@ -34,8 +37,67 @@ def test_tools_call_expected_rpcs(monkeypatch):
     mcp_server.read_history("bob", 5)
     assert ("get_messages", {"alias": "bob", "limit": 5}) in calls
 
+    assert mcp_server.mark_read(["u1"]) == {"marked": 1}
+    assert ("mark_read", {"msg_uuids": ["u1"]}) in calls
+
 
 def test_build_server():
     pytest.importorskip("mcp")
     server = mcp_server.build_server()
     assert server is not None
+
+
+def test_build_server_passes_instructions(monkeypatch):
+    created = {}
+
+    class FakeFastMCP:
+        def __init__(self, name, instructions=None):
+            created["name"] = name
+            created["instructions"] = instructions
+            self.tools = []
+
+        def tool(self):
+            def register(fn):
+                self.tools.append(fn.__name__)
+                return fn
+
+            return register
+
+    mcp_mod = types.ModuleType("mcp")
+    server_mod = types.ModuleType("mcp.server")
+    fastmcp_mod = types.ModuleType("mcp.server.fastmcp")
+    fastmcp_mod.FastMCP = FakeFastMCP
+    monkeypatch.setitem(sys.modules, "mcp", mcp_mod)
+    monkeypatch.setitem(sys.modules, "mcp.server", server_mod)
+    monkeypatch.setitem(sys.modules, "mcp.server.fastmcp", fastmcp_mod)
+
+    server = mcp_server.build_server()
+
+    assert created["name"] == "toxi"
+    assert created["instructions"] == mcp_server.SERVER_INSTRUCTIONS
+    assert "untrusted personal content" in created["instructions"]
+    assert "send_message" in created["instructions"]
+    assert set(server.tools) == {fn.__name__ for fn in mcp_server.TOOLS}
+
+
+def test_build_server_supports_fastmcp_without_instructions(monkeypatch):
+    class LegacyFastMCP:
+        def __init__(self, name, **kwargs):
+            if kwargs:
+                raise TypeError("unexpected keyword")
+            self.name = name
+
+        def tool(self):
+            return lambda fn: fn
+
+    mcp_mod = types.ModuleType("mcp")
+    server_mod = types.ModuleType("mcp.server")
+    fastmcp_mod = types.ModuleType("mcp.server.fastmcp")
+    fastmcp_mod.FastMCP = LegacyFastMCP
+    monkeypatch.setitem(sys.modules, "mcp", mcp_mod)
+    monkeypatch.setitem(sys.modules, "mcp.server", server_mod)
+    monkeypatch.setitem(sys.modules, "mcp.server.fastmcp", fastmcp_mod)
+
+    server = mcp_server.build_server()
+
+    assert server.name == "toxi"

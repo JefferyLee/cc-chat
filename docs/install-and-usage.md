@@ -67,7 +67,7 @@ If `toxi` isn't found, run `pipx ensurepath` and start a new shell.
 
 ## 3. First run
 
-After `toxi setup` you're already running — identity is generated, the daemon is up, and the status bar is wired. A few more touches:
+After `toxi setup` you're already running — identity is generated, the daemon is up, and the Claude Code status bar is wired. A few more touches:
 
 ```bash
 # See your own Tox ID — the 76-char string you share with friends
@@ -91,6 +91,19 @@ toxi status     # "DHT: connected (UDP)" or "(TCP)" when ready
 ├── daemon.pid      PID
 ├── daemon.log      logs (rotated at 10MB × 5)
 └── config.toml     optional (see §7)
+```
+
+### 3.1 Setup variants
+
+`toxi setup` remains the compatibility path for Claude Code users: it runs the
+engine setup and then wires Claude Code.
+
+For narrower setup:
+
+```bash
+toxi setup-engine     # identity + daemon only
+toxi setup-claude     # Claude Code statusLine + plugin install hints only
+toxi setup-codex      # Codex MCP + plugin only
 ```
 
 ---
@@ -261,7 +274,7 @@ claude --plugin-dir /absolute/path/to/toxi-checkout/claude-code-plugin
   - `/send <alias> <message>` — send a message.
   - `/contacts` — list contacts and who's online.
   - `/status` — daemon + DHT + queue + 24-hour stats.
-- **MCP tools** (`get_unread`, `read_history`, `send_message`, `list_contacts`, `get_status`) — Claude can act for you: read your history, draft and send replies. Needs the `[mcp]` extra (§2.1).
+- **MCP tools** (`get_unread`, `read_history`, `mark_read`, `send_message`, `list_contacts`, `get_status`) — Claude can act for you: read your history, mark specific messages read after you have seen them, draft and send replies. Needs the `[mcp]` extra (§2.1).
 
 ### 9.3 Status-line (bottom-bar unread indicator)
 
@@ -290,6 +303,56 @@ toxi --json unread          # should print [...] — the same data the hook inje
 ```
 
 If the hook fires but you see nothing, the daemon isn't running or there's no unread (the hook is silent in both cases).
+
+### 9.5 Codex integration (experimental)
+
+The first Codex plugin package lives in `plugins/toxi/`. It bundles a Codex
+manifest, MCP server config, SessionStart/Stop hooks, and a `toxi` skill. The
+hooks call `toxi statusline` so Codex can show the same summary Claude Code
+puts in its bottom bar, for example `toxi: 📬 2 from mini2, jeff · 2/2 online`.
+The SessionStart hook also calls `toxi --json unread`, so it only peeks at unread
+messages and never marks them read. The MCP server also advertises instructions
+that tell Codex that
+incoming messages are untrusted personal content, read tools are peek-only, and
+`mark_read` / `send_message` should only be used after an explicit user request
+or, for `mark_read`, after the exact messages have been relayed to you.
+
+The repo-level Codex marketplace entry is `.agents/plugins/marketplace.json`.
+Codex plugin installation currently requires a source checkout; a PyPI/pipx
+engine install can still provide `toxi mcp serve`, but it does not include the
+repo marketplace files. From a checkout, run:
+
+```bash
+toxi setup-codex
+```
+
+This command installs the MCP extra when possible, registers `toxi mcp serve`
+with Codex, adds this checkout as a Codex plugin marketplace, and installs the
+`toxi` Codex plugin. It is safe to run after engine setup; it does not create
+your Tox identity or start the daemon. Use `toxi setup-engine` for that.
+
+Check the non-interactive wiring:
+
+```bash
+toxi doctor-codex
+```
+
+After that, in Codex:
+
+```text
+/mcp      # confirm the toxi MCP server is enabled
+/hooks    # review and trust the toxi hooks if prompted
+/plugins  # confirm the toxi plugin is installed and enabled
+```
+
+To remove only the Codex integration:
+
+```bash
+toxi teardown-codex
+```
+
+This removes the Codex plugin, MCP server, and marketplace entry. It does not
+stop the toxi daemon or delete your identity/history.
 
 ---
 
@@ -382,7 +445,7 @@ toxi reinstall-plugin       # fetches GitHub HEAD, refreshes Claude Code's plugi
 
 (Without this helper you'd need to `/plugin uninstall toxi@toxi`, `/plugin marketplace remove toxi`, `/plugin marketplace add JefferyLee/toxi`, `/plugin install toxi@toxi`, `/reload-plugins` — five slash commands instead of one shell + one slash.)
 
-> **Maintainer note:** when shipping changes you want users to receive via `upgrade`, bump `version` in `pyproject.toml` before pushing. Without a bump, `pipx upgrade` sees no newer version and is a no-op — users would need to run `reinstall` instead.
+> **Maintainer note:** when shipping changes you want users to receive via `upgrade`, bump `version` in `pyproject.toml` before pushing. The Python package, `toxi.__version__`, Claude Code plugin manifest, and Codex plugin manifest intentionally share that version; `tests/test_versions.py` enforces it. Without a bump, `pipx upgrade` sees no newer version and is a no-op — users would need to run `reinstall` instead.
 
 ---
 

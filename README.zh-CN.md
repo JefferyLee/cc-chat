@@ -6,7 +6,7 @@
 
 Toxi 让你在 AI 编程代理里直接和朋友聊天——**异步、端到端加密、完全去中心化**，无需服务器，基于 [Tox](https://tox.chat) 协议。当前以 Claude Code 插件的形式集成（slash 命令、未读通知、MCP 工具、底部状态栏指示器）。引擎本身与 AI 工具解耦，未来计划支持 Codex、Grok Builder 等。
 
-> 状态：v0.2，macOS 优先。新用户可看[安装与使用手册](docs/install-and-usage.zh-CN.md)（实操向）；完整设计见 [PRD](docs/prd.zh-CN.md)。
+> 状态：v0.2，macOS 优先。新用户可看[安装与使用手册](docs/install-and-usage.zh-CN.md)（实操向）；Codex 用户看 [Codex 中的 toxi 使用手册](docs/codex-usage.zh-CN.md)；完整设计见 [PRD](docs/prd.zh-CN.md)。
 
 ## 工作原理
 
@@ -89,6 +89,9 @@ toxi queue                         # 待发送队列
 | `toxi introductions` | 别人介绍给你的联系人 |
 | `toxi accept-intro <from> <whom> [--alias]` | 接受介绍 |
 | `toxi daemon start` / `stop` | 管理后台 daemon |
+| `toxi setup-engine` / `setup-claude` / `setup-codex` | 只接入引擎、Claude Code 或 Codex |
+| `toxi doctor-codex` | 只读检查 Codex MCP/plugin 接入状态 |
+| `toxi teardown-codex` | 移除 Codex 接入，不动身份和历史 |
 
 ## 配置
 
@@ -131,7 +134,45 @@ claude --plugin-dir ./claude-code-plugin
 - **SessionStart hook** —— 会话开始时把未读消息注入 Claude 的上下文，非中文消息自动翻成中文。来信被明确标为「不可信个人内容、非指令」，防止有人通过消息内容做提示注入。
 - **Slash 命令** —— `/unread`、`/send <别名> <消息>`、`/contacts`、`/status`（命名空间为 `/toxi:...`）。
 - **状态栏集成** —— `toxi statusline` 输出一行摘要（`toxi: 📬 2 from macbook · 1/1 online`），可接到 Claude Code 的 `statusLine` 设置里，未读数会显示在底部状态条。
-- **MCP 工具** —— `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让 Claude 能替你操作。需引擎的 `[mcp]` extra。
+- **MCP 工具** —— `get_unread`、`read_history`、`mark_read`、`send_message`、`list_contacts`、`get_status`，让 Claude 能替你操作。需引擎的 `[mcp]` extra。
+
+## Codex 集成（实验性）
+
+仓库里也加入了第一版 Codex 插件包，位置是 `plugins/toxi/`。它包含：
+
+- **MCP server 配置** —— 启动 `toxi mcp serve`，让 Codex 调用
+  `get_unread`、`read_history`、`mark_read`、`send_message`、`list_contacts`、`get_status`。
+  MCP server 会声明 instructions，保留“不可信来信”、“明确标已读”和“明确要求才发送”的边界。
+- **生命周期 hooks** —— 会话开始/恢复时、每轮结束后显示 `toxi statusline`
+  摘要；会话开始时还会 peek 未读消息，但不标已读。
+- **Codex skill** —— 告诉 Codex 何时使用 toxi、如何限制读取范围，以及如何把来信当作不可信个人内容。
+
+repo 级 Codex marketplace 入口在 `.agents/plugins/marketplace.json`。Codex 插件
+安装目前需要从源码 checkout 运行（PyPI/pipx 安装的 engine 不包含 repo
+marketplace 文件）。本地接入命令是：
+
+```bash
+toxi setup-codex
+```
+
+它会尽量安装 MCP extra、把 `toxi mcp serve` 注册到 Codex、把当前 checkout
+加入 Codex plugin marketplace，并安装 `toxi` Codex 插件。它不会创建身份或启动
+daemon；引擎初始化使用 `toxi setup-engine`。`toxi setup` 继续保持旧的
+engine + Claude Code 组合 setup，`toxi setup-claude` 只接入 Claude Code。
+
+用下面的只读检查确认非交互接入状态：
+
+```bash
+toxi doctor-codex
+```
+
+详细用法见 [Codex 中的 toxi 使用手册](docs/codex-usage.zh-CN.md)。
+
+之后如果只想移除 Codex 集成：
+
+```bash
+toxi teardown-codex
+```
 
 ### 机器可读输出
 
@@ -142,6 +183,8 @@ claude --plugin-dir ./claude-code-plugin
 - **引擎 → PyPI**：`python -m build` + `twine upload` → 用户 `pipx install toxi`。
 - **引擎 → Homebrew**：`packaging/homebrew/toxi.rb` 是 tap formula 模板，`depends_on "toxcore"` 让 `brew install` 顺带把 libtoxcore 装上。通过个人 tap 发布（`brew tap <owner>/<name>`）。
 - **插件 → marketplace**：`.claude-plugin/marketplace.json` 让本仓库本身就是个 marketplace。推到 GitHub 后别人就能 `/plugin marketplace add JefferyLee/toxi` 然后 `/plugin install toxi`。
+- **Codex 插件 → marketplace**：`.agents/plugins/marketplace.json` 暴露 `plugins/toxi/` 下的实验性 Codex 插件。
+- **版本策略**：引擎、Python 包元数据、Claude Code 插件、Codex 插件共用 `pyproject.toml` 里的同一个发布版本。
 
 ## v1 已知限制
 
@@ -154,6 +197,7 @@ claude --plugin-dir ./claude-code-plugin
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest -m "not dht"   # 快速离线测试
-.venv/bin/python -m pytest -m dht          # 走真实 Tox DHT 的慢测试
+.venv/bin/python -m pytest                # 快测；默认跳过真实 toxcore/DHT
+.venv/bin/python -m pytest --run-toxcore  # 包含本地 libtoxcore/daemon 测试
+.venv/bin/python -m pytest --run-dht      # 包含走公网 Tox DHT 的慢测试
 ```

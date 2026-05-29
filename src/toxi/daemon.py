@@ -500,14 +500,16 @@ class Daemon:
     def _mark_read(self, params: dict) -> dict:
         now = int(time.time())
         uuids = params.get("msg_uuids", [])
+        marked = 0
         for u in uuids:
-            self.db.execute(
+            cur = self.db.execute(
                 "UPDATE messages SET read_at=?, status='read' "
-                "WHERE msg_uuid=? AND direction='in'",
+                "WHERE msg_uuid=? AND direction='in' AND read_at IS NULL",
                 (now, u),
             )
+            marked += cur.rowcount
         self.db.commit()
-        return {"marked": len(uuids)}
+        return {"marked": marked}
 
     def _list_queue(self, params: dict) -> dict:
         rows = self.db.execute(

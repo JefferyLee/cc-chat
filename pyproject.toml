@@ -38,4 +38,5 @@ packages = ["src/toxi"]
 [tool.pytest.ini_options]
 markers = [
     "dht: integration tests that connect to the public Tox DHT (slow, network-bound)",
+    "toxcore: tests that construct libtoxcore handles or start the daemon",
 ]

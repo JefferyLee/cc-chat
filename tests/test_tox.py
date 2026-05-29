@@ -1,13 +1,17 @@
 """Tox binding tests.
 
-The fast tests are offline (no DHT). The end-to-end DHT test is marked `dht`
-and skipped by default — run it with `pytest -m dht`.
+Offline tests still construct real libtoxcore handles, so they are marked
+`toxcore` and skipped by default. Run them with `pytest --run-toxcore`; the
+end-to-end DHT test also needs `pytest --run-dht`.
 """
 import time
 
 import pytest
 
 from toxi.tox import Tox, ADDRESS_SIZE
+
+
+pytestmark = pytest.mark.toxcore
 
 
 def test_construct_and_address():

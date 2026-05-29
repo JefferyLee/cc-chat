@@ -19,6 +19,14 @@ PLUGIN_NAME = "toxi"
 MARKETPLACE_NAME = "toxi"
 
 
+def repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def codex_marketplace_path() -> Path:
+    return repo_root() / ".agents" / "plugins" / "marketplace.json"
+
+
 def claude_settings_path() -> Path:
     return Path.home() / ".claude" / "settings.json"
 

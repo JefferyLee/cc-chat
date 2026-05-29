@@ -1,0 +1,37 @@
+{
+  "name": "toxi",
+  "version": "0.2.5",
+  "description": "Decentralized messaging for Codex, over Tox.",
+  "author": {
+    "name": "Jeffery Li",
+    "email": "zhipeng.li@gmail.com",
+    "url": "https://github.com/JefferyLee"
+  },
+  "homepage": "https://github.com/JefferyLee/toxi",
+  "repository": "https://github.com/JefferyLee/toxi",
+  "keywords": [
+    "messaging",
+    "tox",
+    "codex",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Toxi",
+    "shortDescription": "Read and send decentralized toxi messages from Codex.",
+    "longDescription": "Toxi connects Codex to the local toxi daemon through MCP tools, lifecycle hooks, and a reusable skill. Messages are end-to-end encrypted over Tox and stored locally.",
+    "developerName": "Jeffery Li",
+    "category": "Productivity",
+    "capabilities": [
+      "MCP",
+      "Hooks",
+      "Skills"
+    ],
+    "defaultPrompt": [
+      "Check my unread toxi messages.",
+      "Send a toxi message to a contact.",
+      "Summarize my recent toxi history with someone."
+    ]
+  }
+}

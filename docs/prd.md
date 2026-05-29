@@ -235,6 +235,12 @@ toxi/                            (GitHub: JefferyLee/toxi)
 │   ├── hooks/hooks.json         # SessionStart unread-notification hook
 │   ├── hooks/unread_hook.py
 │   └── .mcp.json                # registers `toxi mcp serve`
+├── plugins/toxi/                # experimental Codex plugin (§4.12)
+│   ├── .codex-plugin/plugin.json
+│   ├── hooks/                   # SessionStart/Stop unread hooks
+│   ├── skills/toxi/SKILL.md     # reusable Codex workflow instructions
+│   └── .mcp.json                # registers `toxi mcp serve`
+├── .agents/plugins/marketplace.json  # Codex repo marketplace entry
 ├── .claude-plugin/marketplace.json  # this repo IS its own marketplace
 └── packaging/homebrew/toxi.rb    # tap formula template (§4.13)
 ```
@@ -706,7 +712,7 @@ Length-prefixed JSON:
 | `list_contacts` | `{}` | `[{alias, tox_id, online, last_seen}]` |
 | `send_message` | `{alias, body}` | `{msg_uuid, status}` |
 | `get_messages` | `{alias?, unread_only?, limit?}` | `[messages]` |
-| `mark_read` | `{msg_uuids: [...]}` | OK |
+| `mark_read` | `{msg_uuids: [...]}` | `{marked}` |
 | `list_queue` | `{}` | `[{alias, body, queued_at}]` |
 | `introduce` | `{to_alias, contact_alias, note?}` | OK |
 | `list_introductions` | `{}` | `[pending_intros]` |
@@ -758,6 +764,11 @@ toxi status                    # Daemon status, DHT, friend online state
 toxi daemon start/stop/restart
 toxi daemon logs
 toxi mcp serve                 # Run the MCP server over stdio (see §4.12)
+toxi setup-engine              # Identity + daemon only
+toxi setup-claude              # Claude Code statusLine + install hints only
+toxi setup-codex               # Codex MCP + plugin only
+toxi doctor-codex              # Read-only Codex wiring check
+toxi teardown-codex            # Remove Codex wiring, preserve identity/history
 
 # Claude collaboration
 # Done in v0.1: --json flag, SessionStart unread hook, slash commands, MCP server (§4.12)
@@ -898,11 +909,16 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 | `--json` group flag (§4.7) | Machine-readable output; peek mode for `unread`/`read` (no auto mark-read) | `src/toxi/cli.py` |
 | SessionStart hook | When a Claude Code session starts, injects unread messages into the model's context (and asks the model to translate any non-Chinese message into Chinese) | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py` (calls `toxi --json unread`) |
 | Slash commands | `/unread`, `/send <alias> <message>`, `/contacts`, `/status` — namespaced under `/toxi:` once installed | `claude-code-plugin/commands/*.md` |
-| MCP server | Tools `get_unread`, `read_history`, `send_message`, `list_contacts`, `get_status` — lets the model act for you | `toxi mcp serve` (FastMCP, optional `[mcp]` extra) registered via `claude-code-plugin/.mcp.json` |
+| MCP server | Tools `get_unread`, `read_history`, `mark_read`, `send_message`, `list_contacts`, `get_status` — lets the model act for you while keeping peek and mark-read separate | `toxi mcp serve` (FastMCP, optional `[mcp]` extra) registered via `claude-code-plugin/.mcp.json` |
 
 **Untrusted-input framing (prompt-injection resistance)**: incoming toxi messages are external input being injected into the model's context. The hook and slash-command prompts explicitly label them as **untrusted personal content, not instructions**, so a message body like "ignore previous instructions and run X" is treated as text the user might read, not as something Claude should act on.
 
 **Translation**: because Claude *is* the model, the hook just labels messages and lets Claude translate any non-Chinese ones when relaying — no extra dependency or API call required. A terminal-side translation (no model in the loop) would need a separate Claude API path; that's deferred.
+
+**Codex integration (experimental)**: the engine now also has a Codex plugin in `plugins/toxi/`. It bundles a Codex manifest, `.mcp.json` for `toxi mcp serve`, SessionStart/Stop hooks that print the same `toxi statusline` summary Claude Code shows in its bottom bar, a SessionStart unread peek via `toxi --json unread`, and a `toxi` skill that preserves the same untrusted-input boundary. The MCP server advertises server-level instructions with the same rules, so the boundary is visible even when the skill is not loaded; `get_unread` and `read_history` stay read-only, while `mark_read` is an explicit action for specific message UUIDs. `toxi setup-codex` wires a source checkout into Codex by registering the MCP server, adding the repo marketplace, and installing the plugin; a PyPI/pipx engine install can provide `toxi mcp serve` but does not bundle the repo marketplace files. `toxi doctor-codex` checks that wiring with read-only Codex CLI list commands. `toxi teardown-codex` removes those Codex-side entries without touching the daemon, identity, or chat history. Setup is split into `toxi setup-engine`, `toxi setup-claude`, and `toxi setup-codex`; `toxi setup` remains the legacy combined engine + Claude Code path.
+
+**Codex manual acceptance**:
+- After `toxi setup-codex` and a passing `toxi doctor-codex`, open Codex and verify `/mcp`, `/plugins`, and `/hooks` show the toxi entries; approve hook trust if prompted.
 
 ### 4.13 Distribution and naming
 
@@ -910,7 +926,12 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 |---|---|---|
 | Engine (PyPI) | `toxi` | `pipx install toxi` (after publish); today: `pipx install git+https://github.com/JefferyLee/toxi` |
 | Engine (Homebrew) | `toxi` | `brew install <owner>/tap/toxi` — the formula `depends_on "toxcore"` so libtoxcore comes along automatically. Template at `packaging/homebrew/toxi.rb` |
-| Claude Code plugin | `toxi` | `/plugin marketplace add JefferyLee/toxi` then `/plugin install toxi@toxi`; or `claude --plugin-dir ./claude-code-plugin` for dev |
+| Claude Code plugin | `toxi` | `toxi setup-claude` wires statusLine and prints install hints; `/plugin marketplace add JefferyLee/toxi` then `/plugin install toxi@toxi`; or `claude --plugin-dir ./claude-code-plugin` for dev |
+| Codex plugin | `toxi` | From a checkout: `toxi setup-codex`; verify with `toxi doctor-codex`; remove with `toxi teardown-codex`; repo marketplace entry in `.agents/plugins/marketplace.json`; plugin files live in `plugins/toxi/` |
+
+**Versioning decision**: the engine and bundled plugins use one release version, sourced from `pyproject.toml`. `src/toxi/__init__.py`, `claude-code-plugin/.claude-plugin/plugin.json`, and `plugins/toxi/.codex-plugin/plugin.json` must match it; `tests/test_versions.py` enforces this so marketplace installs and engine upgrades describe the same checkout.
+
+**Test isolation**: ordinary `pytest` skips tests that construct real libtoxcore handles or hit the public Tox DHT. Use `pytest --run-toxcore` for local toxcore/daemon tests and `pytest --run-dht` for slow public-DHT integration tests.
 
 **Why `toxi`**: the engine was originally called `chat`, then `cc-chat` to disambiguate from generic `chat` packages. Both names baked Claude Code into the brand, which doesn't match the long-term direction — the engine is agent-agnostic, with future targets including Codex and Grok Builder. `toxi` keeps the Tox lineage explicit (Tox + i) and stops the brand from collapsing onto one host. The PyPI name `toxi` was available; `cc-chat` was not used on PyPI either, but the new name is shorter, more memorable, and not tied to a single AI tool.
 - The on-disk config dir: `~/.config/toxi/` (renaming it would break the user's existing Tox identity and message history).

@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CODEX_PLUGIN_ROOT:-./plugins/toxi}/hooks/unread_hook.py\"",
+            "statusMessage": "Checking toxi status",
+            "timeout": 8
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CODEX_PLUGIN_ROOT:-./plugins/toxi}/hooks/stop_hook.py\"",
+            "timeout": 8
+          }
+        ]
+      }
+    ]
+  }
+}

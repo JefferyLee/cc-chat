@@ -100,6 +100,9 @@ automatically when they next come online.
 | `toxi introductions` | Show contacts others have introduced to you |
 | `toxi accept-intro <from> <whom> [--alias]` | Accept an introduction |
 | `toxi daemon start` / `stop` | Manage the background daemon |
+| `toxi setup-engine` / `setup-claude` / `setup-codex` | Wire only the engine, Claude Code, or Codex |
+| `toxi doctor-codex` | Check Codex MCP/plugin wiring without changing config |
+| `toxi teardown-codex` | Remove Codex wiring without touching identity/history |
 
 ## Configuration
 
@@ -152,8 +155,51 @@ claude --plugin-dir ./claude-code-plugin
 - **Status-line integration** — `toxi statusline` prints a one-line summary
   (`toxi: 📬 2 from macbook · 1/1 online`) you can wire into Claude Code's
   `statusLine` setting to see unread counts in the bottom bar.
-- **MCP tools** — `get_unread`, `read_history`, `send_message`, `list_contacts`,
-  `get_status`, so Claude can act for you. Needs the engine's `[mcp]` extra.
+- **MCP tools** — `get_unread`, `read_history`, `mark_read`, `send_message`,
+  `list_contacts`, `get_status`, so Claude can act for you. Needs the engine's
+  `[mcp]` extra.
+
+## Codex integration (experimental)
+
+The repo also includes a first Codex plugin package at `plugins/toxi/`. It
+bundles:
+
+- **MCP server config** — starts `toxi mcp serve` so Codex can call
+  `get_unread`, `read_history`, `mark_read`, `send_message`, `list_contacts`,
+  and `get_status`. The MCP server advertises instructions that preserve the
+  untrusted-message, explicit-mark-read, and explicit-send boundaries.
+- **Lifecycle hooks** — show a `toxi statusline` summary on session start/resume
+  and after each turn; session start also peeks at unread messages without
+  marking them read.
+- **A Codex skill** — teaches Codex when to use toxi, how to keep reads
+  bounded, and how to treat incoming messages as untrusted personal content.
+
+The repo-level Codex marketplace entry lives in `.agents/plugins/marketplace.json`.
+Codex plugin installation currently requires running from a source checkout
+(the PyPI/pipx engine install does not bundle the repo marketplace files). From
+a checkout, run:
+
+```bash
+toxi setup-codex
+```
+
+This installs the MCP extra when possible, registers `toxi mcp serve` with
+Codex, adds this checkout as a Codex plugin marketplace, and installs the
+`toxi` Codex plugin. It does not create your identity or start the daemon; use
+`toxi setup-engine` for the engine. `toxi setup` remains the legacy combined
+engine + Claude Code setup, and `toxi setup-claude` wires only Claude Code.
+
+Verify the non-interactive wiring with:
+
+```bash
+toxi doctor-codex
+```
+
+To remove only the Codex integration later:
+
+```bash
+toxi teardown-codex
+```
 
 ### Machine-readable output
 
@@ -171,6 +217,10 @@ are a read-only **peek** — they do *not* mark messages read.
 - **Plugin → marketplace:** `.claude-plugin/marketplace.json` makes this repo a
   marketplace. Push to GitHub and users run
   `/plugin marketplace add JefferyLee/toxi` then `/plugin install toxi`.
+- **Codex plugin → marketplace:** `.agents/plugins/marketplace.json` exposes the
+  experimental Codex plugin in `plugins/toxi/`.
+- **Versioning:** the engine, Python package metadata, Claude Code plugin, and
+  Codex plugin share the same release version from `pyproject.toml`.
 
 ## Limitations (v1)
 
@@ -184,6 +234,7 @@ are a read-only **peek** — they do *not* mark messages read.
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/python -m pytest -m "not dht"   # fast offline tests
-.venv/bin/python -m pytest -m dht          # slow tests that use the real Tox DHT
+.venv/bin/python -m pytest                # fast tests; skips real toxcore/DHT
+.venv/bin/python -m pytest --run-toxcore  # include local libtoxcore/daemon tests
+.venv/bin/python -m pytest --run-dht      # include slow public Tox DHT tests
 ```

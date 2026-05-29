@@ -66,7 +66,7 @@ toxi me                       # 显示 Tox ID 和连接状态
 
 ## 3. 第一次运行
 
-`toxi setup` 跑完以后你已经在运行了——身份生成完毕、daemon 启动了、状态栏接好了。再补几步：
+`toxi setup` 跑完以后你已经在运行了——身份生成完毕、daemon 启动了、Claude Code 状态栏接好了。再补几步：
 
 ```bash
 # 看自己的 Tox ID —— 把这串 76 字符发给朋友（任何渠道：聊天软件、邮件、当面）
@@ -89,6 +89,18 @@ toxi status     # 就绪后显示 "DHT: connected (UDP)" 或 "(TCP)"
 ├── daemon.pid      进程 PID
 ├── daemon.log      日志（10MB × 5 文件轮转）
 └── config.toml     可选（见 §7）
+```
+
+### 3.1 Setup 变体
+
+`toxi setup` 保持 Claude Code 用户的兼容路径：先做引擎 setup，再接入 Claude Code。
+
+更窄的入口：
+
+```bash
+toxi setup-engine     # 只创建身份 + 启动 daemon
+toxi setup-claude     # 只接入 Claude Code 状态栏 + 插件安装提示
+toxi setup-codex      # 只接入 Codex MCP + 插件
 ```
 
 ---
@@ -260,7 +272,7 @@ claude --plugin-dir /绝对路径/到/toxi 仓库/claude-code-plugin
   - `/send <alias> <message>` —— 发消息。
   - `/contacts` —— 列联系人和在线状态。
   - `/status` —— daemon + DHT + 队列 + 24 小时统计。
-- **MCP 工具**（`get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`）—— 让 Claude 替你操作：读历史、起草、发送回复。需要 `[mcp]` extra（§2.1）。
+- **MCP 工具**（`get_unread`、`read_history`、`mark_read`、`send_message`、`list_contacts`、`get_status`）—— 让 Claude 替你操作：读历史、在你看过后标记指定消息为已读、起草、发送回复。需要 `[mcp]` extra（§2.1）。
 
 ### 9.3 状态栏（底部未读指示器）
 
@@ -288,6 +300,54 @@ toxi --json unread          # 应该打印 [...]，hook 注入的就是这份数
 ```
 
 如果 hook 触发了但什么都没说，多半是 daemon 没在跑、或者根本没有未读（这两种情况 hook 都会静默）。
+
+### 9.5 Codex 集成（实验性）
+
+第一版 Codex 插件包位于 `plugins/toxi/`。它包含 Codex manifest、MCP server
+配置、SessionStart/Stop hooks，以及一个 `toxi` skill。hooks 会调用
+`toxi statusline`，让 Codex 显示和 Claude Code 底部状态栏相同的摘要，例如
+`toxi: 📬 2 from mini2, jeff · 2/2 online`。SessionStart hook 还会调用
+`toxi --json unread`，所以只会 peek 未读消息，不会标已读。MCP server 也会声明
+instructions，告诉 Codex 来信是不可信个人内容、读取工具只是 peek、`mark_read` /
+`send_message` 只能在用户明确要求后使用；`mark_read` 也可在已经把对应消息明确转述给用户后调用。
+
+repo 级 Codex marketplace 入口是 `.agents/plugins/marketplace.json`。Codex 插件
+安装目前需要源码 checkout；PyPI/pipx 安装的 engine 仍可提供 `toxi mcp serve`，
+但不包含 repo marketplace 文件。本地接入命令是：
+
+```bash
+toxi setup-codex
+```
+
+这个命令会尽量安装 MCP extra、把 `toxi mcp serve` 注册到 Codex、把当前
+checkout 加入 Codex plugin marketplace，并安装 `toxi` Codex 插件。它适合在引擎
+setup 后运行；不会创建 Tox 身份，也不会启动 daemon。引擎 setup 使用
+`toxi setup-engine`。
+
+检查非交互接入状态：
+
+```bash
+toxi doctor-codex
+```
+
+日常在 Codex 里怎么查看状态、读消息、发消息，见 [Codex 中的 toxi 使用手册](codex-usage.zh-CN.md)。
+
+之后在 Codex 里检查：
+
+```text
+/mcp      # 确认 toxi MCP server 已启用
+/hooks    # 如有提示，审核并信任 toxi hooks
+/plugins  # 确认 toxi 插件已安装并启用
+```
+
+只移除 Codex 集成时：
+
+```bash
+toxi teardown-codex
+```
+
+它会移除 Codex 插件、MCP server 和 marketplace 入口；不会停止 toxi daemon，
+也不会删除你的身份和历史。
 
 ---
 
@@ -380,7 +440,7 @@ toxi reinstall-plugin       # 拉 GitHub HEAD，刷 Claude Code 的 plugin 缓�
 
 （如果没这个 helper，得敲 `/plugin uninstall toxi@toxi`、`/plugin marketplace remove toxi`、`/plugin marketplace add JefferyLee/toxi`、`/plugin install toxi@toxi`、`/reload-plugins` —— 5 条 slash 命令；现在 1 条 shell + 1 条 slash 搞定。）
 
-> **维护者备注**：要让用户能用 `upgrade` 拉到的改动，push 前要在 `pyproject.toml` 里 bump `version`。不 bump 的话，`pipx upgrade` 看不到新版本，是 no-op——用户得改用 `reinstall`。
+> **维护者备注**：要让用户能用 `upgrade` 拉到的改动，push 前要在 `pyproject.toml` 里 bump `version`。Python 包、`toxi.__version__`、Claude Code 插件 manifest、Codex 插件 manifest 统一使用这个版本；`tests/test_versions.py` 会校验同步。不 bump 的话，`pipx upgrade` 看不到新版本，是 no-op——用户得改用 `reinstall`。
 
 ---
 
@@ -411,5 +471,6 @@ brew uninstall toxcore
 ## 15. 接下来
 
 - [README](../README.zh-CN.md) —— 概览与命令一览表。
+- [Codex 中的 toxi 使用手册](codex-usage.zh-CN.md) —— Codex TUI 里的安装验收、状态提示、自然语言用法和排错。
 - [PRD](prd.zh-CN.md) —— 完整设计，含 §4.12 Claude Code 集成 与 §4.13 发布与命名。
 - 仓库：https://github.com/JefferyLee/toxi

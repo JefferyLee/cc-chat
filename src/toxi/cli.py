@@ -402,10 +402,244 @@ def _ensure_mcp_extra() -> str:
     return "installed"
 
 
-@cli.command()
-def setup():
-    """One-shot setup: init identity, start daemon, wire Claude Code statusLine."""
-    # 1. Identity
+def _run_codex(args: list[str]) -> subprocess.CompletedProcess:
+    return subprocess.run(["codex", *args], capture_output=True, text=True)
+
+
+def _completed_output(result: subprocess.CompletedProcess) -> str:
+    return (result.stderr or result.stdout or "").rstrip()
+
+
+def _codex_stdout(args: list[str]) -> tuple[bool, str]:
+    try:
+        result = _run_codex(args)
+    except FileNotFoundError:
+        return False, "Codex CLI not found"
+    return result.returncode == 0, result.stdout.rstrip()
+
+
+def _mcp_extra_present() -> bool:
+    try:
+        import mcp  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def _line_starts_with(text: str, prefix: str) -> bool:
+    return any(line.split(None, 1)[0] == prefix for line in text.splitlines() if line.split())
+
+
+def _plugin_installed(text: str, selector: str) -> bool:
+    for line in text.splitlines():
+        parts = line.split()
+        if parts and parts[0] == selector and "not installed" not in line:
+            return True
+    return False
+
+
+def _codex_step(args: list[str], ok: str, warning: str, manual: str, kept: str) -> None:
+    try:
+        result = _run_codex(args)
+    except FileNotFoundError:
+        click.echo(f"⚠ Codex CLI not found. Run manually after installing Codex:\n    {manual}")
+        return
+    if result.returncode == 0:
+        click.echo(ok)
+        return
+    details = _completed_output(result)
+    lowered = details.lower()
+    if "already" in lowered or "exists" in lowered or "installed" in lowered:
+        click.echo(kept)
+        return
+    click.echo(f"⚠ {warning}")
+    if details:
+        click.echo(f"  {details}")
+    click.echo(f"  Run manually:\n    {manual}")
+
+
+def _codex_remove_step(args: list[str], ok: str, warning: str, manual: str, absent: str) -> None:
+    try:
+        result = _run_codex(args)
+    except FileNotFoundError:
+        click.echo(f"⚠ Codex CLI not found. Run manually after installing Codex:\n    {manual}")
+        return
+    if result.returncode == 0:
+        click.echo(ok)
+        return
+    details = _completed_output(result)
+    lowered = details.lower()
+    if "not found" in lowered or "no " in lowered or "not installed" in lowered:
+        click.echo(absent)
+        return
+    click.echo(f"⚠ {warning}")
+    if details:
+        click.echo(f"  {details}")
+    click.echo(f"  Run manually:\n    {manual}")
+
+
+@cli.command(name="setup-codex")
+def setup_codex():
+    """Wire toxi into Codex: MCP server plus the local Codex plugin."""
+    marketplace = bootstrap.codex_marketplace_path()
+    mcp_status = _ensure_mcp_extra()
+    if mcp_status == "present":
+        click.echo("✓ MCP extra already installed.")
+    elif mcp_status == "installed":
+        click.echo("✓ MCP extra installed via `pipx inject toxi mcp`.")
+    else:
+        click.echo(
+            "⚠ Could not install the MCP extra. Run manually:\n"
+            "    pipx inject toxi mcp\n"
+            "  (without it, Codex's MCP tools won't start.)"
+        )
+
+    if shutil.which("codex") is None:
+        click.echo("\n⚠ Codex CLI not found on PATH. After installing Codex, run:")
+        click.echo("  codex mcp add toxi -- toxi mcp serve")
+        if marketplace.exists():
+            click.echo(f"  codex plugin marketplace add {bootstrap.repo_root()}")
+            click.echo("  codex plugin add toxi@toxi")
+        else:
+            click.echo(
+                f"\n⚠ Codex plugin files were not found at {marketplace}.\n"
+                "  Plugin install currently requires running from a source checkout:\n"
+                "    git clone https://github.com/JefferyLee/toxi\n"
+                "    cd toxi\n"
+                "    toxi setup-codex"
+            )
+        return
+
+    _codex_step(
+        ["mcp", "add", "toxi", "--", "toxi", "mcp", "serve"],
+        "✓ Registered Codex MCP server `toxi`.",
+        "Could not register Codex MCP server `toxi`.",
+        "codex mcp add toxi -- toxi mcp serve",
+        "✓ Codex MCP server `toxi` already registered.",
+    )
+
+    if marketplace.exists():
+        _codex_step(
+            ["plugin", "marketplace", "add", str(bootstrap.repo_root())],
+            "✓ Registered this checkout as a Codex plugin marketplace.",
+            "Could not register this checkout as a Codex plugin marketplace.",
+            f"codex plugin marketplace add {bootstrap.repo_root()}",
+            "✓ Codex plugin marketplace already registered.",
+        )
+        _codex_step(
+            ["plugin", "add", "toxi@toxi"],
+            "✓ Installed Codex plugin `toxi`.",
+            "Could not install Codex plugin `toxi`.",
+            "codex plugin add toxi@toxi",
+            "✓ Codex plugin `toxi` already installed.",
+        )
+    else:
+        click.echo(
+            f"⚠ Codex marketplace file not found at {marketplace}.\n"
+            "  Codex MCP was registered, but plugin install currently requires a source checkout:\n"
+            "    git clone https://github.com/JefferyLee/toxi\n"
+            "    cd toxi\n"
+            "    toxi setup-codex"
+        )
+
+    click.echo("\nNext:")
+    click.echo("  toxi doctor-codex  # verify Codex MCP/plugin wiring without changing config")
+    click.echo("\nThen in Codex:")
+    click.echo("  /mcp      # confirm the toxi MCP server is enabled")
+    click.echo("  /hooks    # review and trust the toxi hooks if prompted")
+    click.echo("  /plugins  # confirm the toxi plugin is installed and enabled")
+
+
+@cli.command(name="doctor-codex")
+def doctor_codex():
+    """Check the Codex MCP/plugin wiring without changing Codex config."""
+    failures: list[str] = []
+    marketplace = bootstrap.codex_marketplace_path()
+    if marketplace.exists():
+        click.echo(f"✓ Local Codex marketplace file found: {marketplace}")
+    else:
+        failures.append(f"Local Codex marketplace file missing: {marketplace}")
+        click.echo(f"⚠ Local Codex marketplace file missing: {marketplace}")
+
+    if _mcp_extra_present():
+        click.echo("✓ MCP extra importable by this toxi environment.")
+    else:
+        failures.append("MCP extra is not importable")
+        click.echo("⚠ MCP extra is not importable. Run: pipx inject toxi mcp")
+
+    if shutil.which("codex") is None:
+        failures.append("Codex CLI not found")
+        click.echo("⚠ Codex CLI not found on PATH.")
+    else:
+        click.echo("✓ Codex CLI found on PATH.")
+
+        ok, out = _codex_stdout(["mcp", "list"])
+        if ok and _line_starts_with(out, "toxi"):
+            click.echo("✓ Codex MCP server `toxi` is registered.")
+        else:
+            failures.append("Codex MCP server `toxi` is not registered")
+            click.echo("⚠ Codex MCP server `toxi` is not registered. Run: codex mcp add toxi -- toxi mcp serve")
+
+        ok, out = _codex_stdout(["plugin", "marketplace", "list"])
+        if ok and _line_starts_with(out, "toxi"):
+            click.echo("✓ Codex plugin marketplace `toxi` is registered.")
+        else:
+            failures.append("Codex plugin marketplace `toxi` is not registered")
+            click.echo(f"⚠ Codex plugin marketplace `toxi` is not registered. Run: codex plugin marketplace add {bootstrap.repo_root()}")
+
+        ok, out = _codex_stdout(["plugin", "list"])
+        if ok and _plugin_installed(out, "toxi@toxi"):
+            click.echo("✓ Codex plugin `toxi` is installed.")
+        else:
+            failures.append("Codex plugin `toxi` is not installed")
+            click.echo("⚠ Codex plugin `toxi` is not installed. Run: codex plugin add toxi@toxi")
+
+    if failures:
+        raise click.ClickException(
+            "Codex integration incomplete. Run `toxi setup-codex`, then `toxi doctor-codex` again."
+        )
+    click.echo("\nCodex integration looks ready. In Codex, `/mcp`, `/hooks`, and `/plugins` should show toxi.")
+
+
+@cli.command(name="teardown-codex")
+def teardown_codex():
+    """Remove toxi from Codex without touching your identity or daemon."""
+    if shutil.which("codex") is None:
+        click.echo(
+            "⚠ Codex CLI not found on PATH. If Codex is installed elsewhere, run:\n"
+            "  codex plugin remove toxi@toxi\n"
+            "  codex mcp remove toxi\n"
+            "  codex plugin marketplace remove toxi"
+        )
+        return
+
+    _codex_remove_step(
+        ["plugin", "remove", "toxi@toxi"],
+        "✓ Removed Codex plugin `toxi`.",
+        "Could not remove Codex plugin `toxi`.",
+        "codex plugin remove toxi@toxi",
+        "✓ Codex plugin `toxi` already absent.",
+    )
+    _codex_remove_step(
+        ["mcp", "remove", "toxi"],
+        "✓ Removed Codex MCP server `toxi`.",
+        "Could not remove Codex MCP server `toxi`.",
+        "codex mcp remove toxi",
+        "✓ Codex MCP server `toxi` already absent.",
+    )
+    _codex_remove_step(
+        ["plugin", "marketplace", "remove", "toxi"],
+        "✓ Removed Codex plugin marketplace `toxi`.",
+        "Could not remove Codex plugin marketplace `toxi`.",
+        "codex plugin marketplace remove toxi",
+        "✓ Codex plugin marketplace `toxi` already absent.",
+    )
+
+    click.echo(f"\n(Identity + history preserved in {paths.config_dir()}.)")
+
+
+def _setup_engine() -> None:
+    """Initialize identity and start the daemon."""
     if bootstrap.identity_initialized():
         click.echo("✓ Identity already initialized.")
     else:
@@ -416,14 +650,15 @@ def setup():
         t.kill()
         click.echo(f"✓ Generated identity (Tox ID: {addr[:16]}…). Run `toxi me` for the full ID.")
 
-    # 2. Daemon
     if bootstrap.daemon_running():
         click.echo("✓ Daemon already running.")
     else:
         pid = _spawn_daemon()
         click.echo(f"✓ Daemon started (PID {pid}).")
 
-    # 3. MCP extra (needed by Claude Code's natural-language tool path)
+
+def _setup_claude() -> None:
+    """Wire Claude Code statusLine and print plugin install guidance."""
     mcp_status = _ensure_mcp_extra()
     if mcp_status == "present":
         click.echo("✓ MCP extra already installed.")
@@ -436,7 +671,6 @@ def setup():
             "  (without it, Claude Code's natural-language tool calls won't work.)"
         )
 
-    # 4. statusLine
     sp = bootstrap.claude_settings_path()
     result = bootstrap.ensure_statusline()
     if result == "added":
@@ -454,6 +688,25 @@ def setup():
     click.echo("\nNext — install the Claude Code plugin (run inside Claude Code):")
     click.echo("  /plugin marketplace add JefferyLee/toxi")
     click.echo("  /plugin install toxi")
+
+
+@cli.command(name="setup-engine")
+def setup_engine():
+    """Initialize your toxi identity and start the daemon."""
+    _setup_engine()
+
+
+@cli.command(name="setup-claude")
+def setup_claude():
+    """Wire toxi into Claude Code without touching identity or daemon state."""
+    _setup_claude()
+
+
+@cli.command()
+def setup():
+    """One-shot setup: init identity, start daemon, wire Claude Code statusLine."""
+    _setup_engine()
+    _setup_claude()
 
 
 @cli.command()
