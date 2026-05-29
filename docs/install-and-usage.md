@@ -308,8 +308,9 @@ If the hook fires but you see nothing, the daemon isn't running or there's no un
 
 The first Codex plugin package lives in `plugins/toxi/`. It bundles a Codex
 manifest, MCP server config, SessionStart/Stop hooks, and a `toxi` skill. The
-hooks call `toxi statusline` so Codex can show the same summary Claude Code
-puts in its bottom bar, for example `toxi: 📬 2 from mini2, jeff · 2/2 online`.
+hooks call `toxi statusline` and return Codex hook JSON, so Codex can surface
+the same summary Claude Code puts in its bottom bar, for example
+`toxi: 📬 2 from mini2, jeff · 2/2 online`.
 The SessionStart hook also calls `toxi --json unread`, so it only peeks at unread
 messages and never marks them read. The MCP server also advertises instructions
 that tell Codex that

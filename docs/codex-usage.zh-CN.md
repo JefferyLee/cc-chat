@@ -53,7 +53,8 @@ toxi doctor-codex
 
 ## 4. 消息状态怎么看
 
-Codex 没有 Claude Code 那种底部常驻 `statusLine`。toxi 的 Codex 插件用 hooks 显示同样的摘要：
+Codex 没有 Claude Code 那种底部常驻 `statusLine`。toxi 的 Codex 插件用
+Codex hook JSON 显示同样的摘要：
 
 ```text
 toxi: 📬 2 from mini2, jeff · 2/2 online
@@ -67,8 +68,8 @@ toxi: 📬 2 from mini2, jeff · 2/2 online
 
 显示时机：
 
-- 会话开始或恢复时：显示 `toxi statusline` 摘要，并把未读消息作为上下文注入给 Codex
-- 每轮结束时：显示 `toxi statusline` 摘要
+- 会话开始或恢复时：通过 SessionStart hook 显示 `toxi statusline` 摘要，并把未读消息作为上下文注入给 Codex
+- 每轮结束时：通过 Stop hook 显示 `toxi statusline` 摘要
 
 如果没有未读，可能显示：
 

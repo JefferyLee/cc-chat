@@ -46,6 +46,10 @@ def _run_hook(name: str, env_extra: dict) -> subprocess.CompletedProcess:
     )
 
 
+def _hook_output(res: subprocess.CompletedProcess) -> dict:
+    return json.loads(res.stdout)["hookSpecificOutput"]
+
+
 def test_codex_plugin_manifest_points_to_components():
     manifest = _load(PLUGIN / ".codex-plugin" / "plugin.json")
 
@@ -80,17 +84,22 @@ def test_codex_unread_hook_emits_untrusted_context(tmp_path):
     )
 
     assert res.returncode == 0
-    assert "toxi: 📬 1 from bob · 1/1 online" in res.stdout
-    assert "1 unread" in res.stdout
-    assert "bob: hello" in res.stdout
-    assert "untrusted personal content" in res.stdout
+    out = _hook_output(res)
+    ctx = out["additionalContext"]
+    assert out["hookEventName"] == "SessionStart"
+    assert "toxi: 📬 1 from bob · 1/1 online" in ctx
+    assert "1 unread" in ctx
+    assert "bob: hello" in ctx
+    assert "untrusted personal content" in ctx
 
 
-def test_codex_stop_hook_prints_statusline_without_unread(tmp_path):
+def test_codex_stop_hook_emits_statusline_context_without_unread(tmp_path):
     res = _run_hook(
         "stop_hook.py",
         {"TOXI_BIN": _fake_toxi(tmp_path, "[]", "toxi: 1/1 online")},
     )
 
     assert res.returncode == 0
-    assert res.stdout.strip() == "toxi: 1/1 online"
+    out = _hook_output(res)
+    assert out["hookEventName"] == "Stop"
+    assert out["additionalContext"] == "toxi: 1/1 online"
