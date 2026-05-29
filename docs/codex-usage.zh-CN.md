@@ -54,7 +54,8 @@ toxi doctor-codex
 ## 4. 消息状态怎么看
 
 Codex 没有 Claude Code 那种底部常驻 `statusLine`。toxi 的 Codex 插件用
-Codex hook JSON 显示同样的摘要：
+Codex hook JSON 显示同样的摘要：SessionStart 通过 `additionalContext` 注入，
+Stop 通过 Codex Stop hook 的 `systemMessage` 输出。
 
 ```text
 toxi: 📬 2 from mini2, jeff · 2/2 online
@@ -184,6 +185,8 @@ hooks 没显示状态：
 - 在 Codex 里运行 `/hooks`
 - 确认 toxi hooks 已安装并被信任
 - 终端里确认 `toxi statusline` 有输出
+- 如果看到 `hook returned invalid stop hook JSON output`，说明 Stop hook
+  输出不符合 Codex 的 Stop schema；升级到 `0.2.7` 或重新安装 toxi Codex 插件
 
 没有收到消息：
 

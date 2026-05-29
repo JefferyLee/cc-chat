@@ -50,6 +50,10 @@ def _hook_output(res: subprocess.CompletedProcess) -> dict:
     return json.loads(res.stdout)["hookSpecificOutput"]
 
 
+def _stop_hook_output(res: subprocess.CompletedProcess) -> dict:
+    return json.loads(res.stdout)
+
+
 def test_codex_plugin_manifest_points_to_components():
     manifest = _load(PLUGIN / ".codex-plugin" / "plugin.json")
 
@@ -100,6 +104,5 @@ def test_codex_stop_hook_emits_statusline_context_without_unread(tmp_path):
     )
 
     assert res.returncode == 0
-    out = _hook_output(res)
-    assert out["hookEventName"] == "Stop"
-    assert out["additionalContext"] == "toxi: 1/1 online"
+    out = _stop_hook_output(res)
+    assert out == {"continue": True, "systemMessage": "toxi: 1/1 online"}

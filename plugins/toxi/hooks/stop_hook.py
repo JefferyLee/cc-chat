@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Codex Stop hook for toxi.
 
-Emits Codex hook JSON with the same statusline-style summary that Claude Code
-shows in its bottom bar. It stays silent when `toxi statusline` cannot run.
+Emits Codex Stop hook JSON with the same statusline-style summary that Claude
+Code shows in its bottom bar. It stays silent when `toxi statusline` cannot run.
 """
 import json
 import os
@@ -24,10 +24,8 @@ def main() -> None:
         print(
             json.dumps(
                 {
-                    "hookSpecificOutput": {
-                        "hookEventName": "Stop",
-                        "additionalContext": status,
-                    }
+                    "continue": True,
+                    "systemMessage": status,
                 }
             )
         )
