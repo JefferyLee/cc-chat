@@ -73,22 +73,22 @@ toxi queue                         # 待发送队列
 
 | 命令 | 作用 |
 |---|---|
-| `chat init` | 生成身份（一次性） |
-| `chat me` | 显示自己的 Tox ID、名字、连接状态 |
-| `chat set-name <名字>` | 设置展示名 |
-| `chat status` | daemon 状态、DHT 连接、联系人、队列、统计 |
-| `chat add <别名> <tox_id>` | 通过 Tox ID 加好友 |
-| `chat requests` | 待处理的好友请求 |
-| `chat accept <别名> <公钥前缀>` | 接受好友请求并给对方起本地别名 |
-| `chat contacts [--online]` | 列出联系人 |
-| `chat send <别名> <消息>` | 发消息（`-` 表示从 stdin 读） |
-| `chat unread [别名]` | 显示未读消息（并标为已读） |
-| `chat read <别名> [--limit N]` | 看对话历史 |
-| `chat queue` | 待发送队列 |
-| `chat introduce <to> <whom>` | 把一个联系人介绍给另一个 |
-| `chat introductions` | 别人介绍给你的联系人 |
-| `chat accept-intro <from> <whom> [--alias]` | 接受介绍 |
-| `chat daemon start` / `stop` | 管理后台 daemon |
+| `toxi init` | 生成身份（一次性） |
+| `toxi me` | 显示自己的 Tox ID、名字、连接状态 |
+| `toxi set-name <名字>` | 设置展示名 |
+| `toxi status` | daemon 状态、DHT 连接、联系人、队列、统计 |
+| `toxi add <别名> <tox_id>` | 通过 Tox ID 加好友 |
+| `toxi requests` | 待处理的好友请求 |
+| `toxi accept <别名> <公钥前缀>` | 接受好友请求并给对方起本地别名 |
+| `toxi contacts [--online]` | 列出联系人 |
+| `toxi send <别名> <消息>` | 发消息（`-` 表示从 stdin 读） |
+| `toxi unread [别名]` | 显示未读消息（并标为已读） |
+| `toxi read <别名> [--limit N]` | 看对话历史 |
+| `toxi queue` | 待发送队列 |
+| `toxi introduce <to> <whom>` | 把一个联系人介绍给另一个 |
+| `toxi introductions` | 别人介绍给你的联系人 |
+| `toxi accept-intro <from> <whom> [--alias]` | 接受介绍 |
+| `toxi daemon start` / `stop` | 管理后台 daemon |
 
 ## 配置
 
@@ -135,7 +135,7 @@ claude --plugin-dir ./claude-code-plugin
 
 ### 机器可读输出
 
-所有读命令都支持 `--json`（放在子命令前面）：`chat --json unread`、`chat --json status` 等。`--json` 模式下 `unread` / `read` 是**只读 peek**，不会标已读。
+所有读命令都支持 `--json`（放在子命令前面）：`toxi --json unread`、`toxi --json status` 等。`--json` 模式下 `unread` / `read` 是**只读 peek**，不会标已读。
 
 ## 发布
 

@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "toxi"
-version = "0.2.1"
+version = "0.2.2"
 description = "Decentralized messaging for AI coding agents, over Tox"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Jeffery Li", email = "zhipeng.li@gmail.com" }]
-keywords = ["tox", "chat", "p2p", "decentralized", "encrypted", "claude-code"]
+keywords = ["tox", "messaging", "p2p", "decentralized", "encrypted", "ai-agents", "claude-code"]
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",

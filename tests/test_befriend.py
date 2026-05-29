@@ -102,8 +102,8 @@ def _befriend(home_a: str, home_b: str) -> None:
 
 @pytest.mark.dht
 def test_two_daemons_befriend():
-    home_a = tempfile.mkdtemp(prefix="cc-a-", dir="/tmp")
-    home_b = tempfile.mkdtemp(prefix="cc-b-", dir="/tmp")
+    home_a = tempfile.mkdtemp(prefix="toxi-a-", dir="/tmp")
+    home_b = tempfile.mkdtemp(prefix="toxi-b-", dir="/tmp")
     pa = pb = None
     try:
         pa = _start(home_a)
@@ -127,7 +127,7 @@ def test_two_daemons_befriend():
 def test_introduce_lets_bob_add_carol():
     """Step 8 milestone (PRD §8 metric ③): Alice introduces Carol to Bob, and Bob
     ends up connected to Carol."""
-    homes = {n: tempfile.mkdtemp(prefix=f"cc-{n[0]}-", dir="/tmp")
+    homes = {n: tempfile.mkdtemp(prefix=f"toxi-{n[0]}-", dir="/tmp")
              for n in ("alice", "bob", "carol")}
     procs = {}
     try:
@@ -165,8 +165,8 @@ def test_introduce_lets_bob_add_carol():
 def test_offline_queue_delivered_in_order():
     """Step 6 milestone (PRD §8 metric ②): 10 messages sent while Bob is offline
     are all delivered, in order, once he comes back online."""
-    home_a = tempfile.mkdtemp(prefix="cc-a-", dir="/tmp")
-    home_b = tempfile.mkdtemp(prefix="cc-b-", dir="/tmp")
+    home_a = tempfile.mkdtemp(prefix="toxi-a-", dir="/tmp")
+    home_b = tempfile.mkdtemp(prefix="toxi-b-", dir="/tmp")
     pa = pb = None
     try:
         pa = _start(home_a)
@@ -207,8 +207,8 @@ def test_offline_queue_delivered_in_order():
 @pytest.mark.dht
 def test_online_message_round_trip():
     """Step 5 milestone: a live message from Alice reaches Bob and is stored."""
-    home_a = tempfile.mkdtemp(prefix="cc-a-", dir="/tmp")
-    home_b = tempfile.mkdtemp(prefix="cc-b-", dir="/tmp")
+    home_a = tempfile.mkdtemp(prefix="toxi-a-", dir="/tmp")
+    home_b = tempfile.mkdtemp(prefix="toxi-b-", dir="/tmp")
     pa = pb = None
     try:
         pa = _start(home_a)

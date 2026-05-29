@@ -1,11 +1,11 @@
 """MCP server exposing toxi to MCP clients (e.g. Claude Code).
 
-Run with `chat mcp serve` (stdio transport). Needs the optional `mcp` extra:
+Run with `toxi mcp serve` (stdio transport). Needs the optional `mcp` extra:
 
     pipx install 'toxi[mcp]'      # or: pip install '.[mcp]'
 
 The tools talk to the running daemon over its Unix socket, so start it first
-with `chat daemon start`.
+with `toxi daemon start`.
 """
 from . import client
 

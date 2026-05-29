@@ -30,7 +30,7 @@ def _foreign_tox_id() -> str:
 def home(monkeypatch):
     # Short path under /tmp: macOS caps AF_UNIX socket paths at ~104 chars,
     # and pytest's tmp_path is too deep once "/daemon.sock" is appended.
-    d = tempfile.mkdtemp(prefix="cc-", dir="/tmp")
+    d = tempfile.mkdtemp(prefix="toxi-", dir="/tmp")
     monkeypatch.setenv("TOXI_HOME", d)
     yield d
     shutil.rmtree(d, ignore_errors=True)

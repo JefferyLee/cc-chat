@@ -84,22 +84,22 @@ automatically when they next come online.
 
 | Command | What it does |
 |---|---|
-| `chat init` | Generate your identity (one time) |
-| `chat me` | Show your Tox ID, name, connection state |
-| `chat set-name <name>` | Set your display name |
-| `chat status` | Daemon status, DHT connection, contacts, queue, stats |
-| `chat add <alias> <tox_id>` | Add a friend by their Tox ID |
-| `chat requests` | Show pending friend requests |
-| `chat accept <alias> <pubkey-prefix>` | Accept a friend request, naming them locally |
-| `chat contacts [--online]` | List contacts |
-| `chat send <alias> <message>` | Send a message (`-` reads from stdin) |
-| `chat unread [alias]` | Show (and mark read) unread messages |
-| `chat read <alias> [--limit N]` | Show conversation history |
-| `chat queue` | Show messages waiting to be delivered |
-| `chat introduce <to> <whom>` | Share one contact's details with another |
-| `chat introductions` | Show contacts others have introduced to you |
-| `chat accept-intro <from> <whom> [--alias]` | Accept an introduction |
-| `chat daemon start` / `stop` | Manage the background daemon |
+| `toxi init` | Generate your identity (one time) |
+| `toxi me` | Show your Tox ID, name, connection state |
+| `toxi set-name <name>` | Set your display name |
+| `toxi status` | Daemon status, DHT connection, contacts, queue, stats |
+| `toxi add <alias> <tox_id>` | Add a friend by their Tox ID |
+| `toxi requests` | Show pending friend requests |
+| `toxi accept <alias> <pubkey-prefix>` | Accept a friend request, naming them locally |
+| `toxi contacts [--online]` | List contacts |
+| `toxi send <alias> <message>` | Send a message (`-` reads from stdin) |
+| `toxi unread [alias]` | Show (and mark read) unread messages |
+| `toxi read <alias> [--limit N]` | Show conversation history |
+| `toxi queue` | Show messages waiting to be delivered |
+| `toxi introduce <to> <whom>` | Share one contact's details with another |
+| `toxi introductions` | Show contacts others have introduced to you |
+| `toxi accept-intro <from> <whom> [--alias]` | Accept an introduction |
+| `toxi daemon start` / `stop` | Manage the background daemon |
 
 ## Configuration
 
@@ -158,7 +158,7 @@ claude --plugin-dir ./claude-code-plugin
 ### Machine-readable output
 
 Every read command also supports `--json` (placed before the subcommand):
-`chat --json unread`, `chat --json status`, etc. In `--json` mode `unread`/`read`
+`toxi --json unread`, `toxi --json status`, etc. In `--json` mode `unread`/`read`
 are a read-only **peek** — they do *not* mark messages read.
 
 ## Distribution

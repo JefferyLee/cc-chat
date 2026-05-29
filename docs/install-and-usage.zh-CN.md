@@ -79,7 +79,7 @@ toxi set-name "Alice"
 toxi status     # 就绪后显示 "DHT: connected (UDP)" 或 "(TCP)"
 ```
 
-`chat init` 与第一次 `chat daemon start` 会在 `~/.config/toxi/` 下生成：
+`toxi init` 与第一次 `toxi daemon start` 会在 `~/.config/toxi/` 下生成：
 
 ```
 ~/.config/toxi/
@@ -173,7 +173,7 @@ queued ──> sent ──> delivered ──> read
 - `read` —— 对方真的读了（v1 不发读取回执，所以暂时不会到这步）。
 - `failed` —— 超过 `fail_after_hours` 仍未 ACK，放弃（见 §7）。
 
-CLI 目前不直接显示这个字段（`chat send` 后只会说 "sent" 或 "queued"）。完整状态在 SQLite 里，可用 `chat --json read <别名>` 取出。
+CLI 目前不直接显示这个字段（`toxi send` 后只会说 "sent" 或 "queued"）。完整状态在 SQLite 里，可用 `toxi --json read <别名>` 取出。
 
 ---
 
@@ -181,7 +181,7 @@ CLI 目前不直接显示这个字段（`chat send` 后只会说 "sent" 或 "que
 
 toxi 就是为异步设计的——**别管对方在不在线**。
 
-- 对方离线时 `chat send`，消息进本地队列。
+- 对方离线时 `toxi send`，消息进本地队列。
 - 等他的 daemon 下次连上线，你的 daemon 会感知到并**按发送顺序**把队列一次性发完。
 - 接收方按消息 UUID 去重并对每条都 ACK，所以重发也安全。
 
@@ -209,7 +209,7 @@ ack_timeout_minutes = 5     # 未收到 ACK 等这么久就重发（前提是好
 fail_after_hours = 24       # 超过这么久仍未确认就标记为 failed
 ```
 
-daemon 在启动时读这个文件；改完后 `chat daemon stop && toxi daemon start` 重启即生效。
+daemon 在启动时读这个文件；改完后 `toxi daemon stop && toxi daemon start` 重启即生效。
 
 ---
 
@@ -224,7 +224,7 @@ daemon 在启动时读这个文件；改完后 `chat daemon stop && toxi daemon 
 toxi introduce bob carol --note "我同事"
 
 # Bob 在他那边看到：
-chat introductions
+toxi introductions
 # [1 introduction(s)]
 #   alice introduced 'carol' (Tox ID: F1E2D3...)
 #     note: 我同事
@@ -324,7 +324,7 @@ toxi send bob "hi from alice"
 toxi unread                                # 看到 Alice 的消息
 ```
 
-收尾：两个终端各跑 `chat daemon stop`，然后 `rm -rf /tmp/alice /tmp/bob`。
+收尾：两个终端各跑 `toxi daemon stop`，然后 `rm -rf /tmp/alice /tmp/bob`。
 
 ---
 
@@ -337,7 +337,7 @@ toxi status                   # PID / 运行时长 / DHT / 联系人 / 队列 / 
 tail -f ~/.config/toxi/daemon.log
 ```
 
-daemon 是**常驻**的：留着它跑。它**不会**自动重启——如果挂了你需要再 `chat daemon start`（或者自己配 `launchd` / `systemd`，这是 v0.2 路线图）。
+daemon 是**常驻**的：留着它跑。它**不会**自动重启——如果挂了你需要再 `toxi daemon start`（或者自己配 `launchd` / `systemd`，这是 v0.2 路线图）。
 
 ---
 
@@ -347,14 +347,14 @@ daemon 是**常驻**的：留着它跑。它**不会**自动重启——如果�
 |---|---|
 | `toxi` 找不到 | `pipx ensurepath` 然后重开终端 |
 | `could not load libtoxcore` | 装上：macOS `brew install toxcore`；Linux 装发行版包 |
-| `daemon already running` | 已经有 daemon 在跑了。要么继续用，要么 `chat daemon stop` 再 start |
-| `chat status` 一直 `DHT: not connected` | 等 30–60s。再不行检查出站 UDP 是否被允许（咖啡馆 Wi-Fi / 公司 VPN 常拦）；UDP 全堵时 Tox 会回退到 TCP 但更慢。重启 daemon |
+| `daemon already running` | 已经有 daemon 在跑了。要么继续用，要么 `toxi daemon stop` 再 start |
+| `toxi status` 一直 `DHT: not connected` | 等 30–60s。再不行检查出站 UDP 是否被允许（咖啡馆 Wi-Fi / 公司 VPN 常拦）；UDP 全堵时 Tox 会回退到 TCP 但更慢。重启 daemon |
 | 你 `add` 了对方，他一直显示 offline | 他得先接受才行。在接受之前，你这边一直显示 offline。接受之后两侧都需要 DHT 连接才能建好友链路 |
-| 接 `chat accept <别名> <前缀>` 报 `REQUEST_NOT_FOUND` | 前缀没匹配上任何待处理请求。从 `chat requests` 复制更长的前缀 |
+| 接 `toxi accept <别名> <前缀>` 报 `REQUEST_NOT_FOUND` | 前缀没匹配上任何待处理请求。从 `toxi requests` 复制更长的前缀 |
 | 消息卡在 `queued`，但朋友其实在线 | "在线"状态可能滞后。等一个 ack-timeout 周期（默认 `ack_timeout_minutes=5`），重试扫描会自动重发 |
-| Claude Code 里 hook 没注入任何东西 | 没有未读、daemon 没跑、或者 `toxi` 不在 Claude Code 进程的 PATH 上。在 hook 配置里设 `CHAT_BIN`（见 `claude-code-plugin/hooks/unread_hook.py`） |
+| Claude Code 里 hook 没注入任何东西 | 没有未读、daemon 没跑、或者 `toxi` 不在 Claude Code 进程的 PATH 上。在 hook 配置里设 `TOXI_BIN`（见 `claude-code-plugin/hooks/unread_hook.py`） |
 | `/mcp` 里看不到工具 | 插件没装、daemon 没跑、或者没装 `[mcp]` extra。`pipx install --force 'toxi[mcp]'` |
-| 弄丢了 `tox_state.bin` | 这文件就是你的身份。没有备份就找不回。只能 `chat init` 从头来过，让朋友重新加你 |
+| 弄丢了 `tox_state.bin` | 这文件就是你的身份。没有备份就找不回。只能 `toxi init` 从头来过，让朋友重新加你 |
 
 ---
 

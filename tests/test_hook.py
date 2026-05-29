@@ -1,6 +1,6 @@
 """Tests for the Claude Code SessionStart hook (integrations/claude-code).
 
-We point the hook at a fake `chat` (via CHAT_BIN) so the tests are fast and need
+We point the hook at a fake `toxi` (via TOXI_BIN) so the tests are fast and need
 no daemon or DHT.
 """
 import json
@@ -12,8 +12,8 @@ from pathlib import Path
 HOOK = Path(__file__).resolve().parents[1] / "claude-code-plugin" / "hooks" / "unread_hook.py"
 
 
-def _fake_chat(tmp_path) -> str:
-    p = tmp_path / "fakechat"
+def _fake_toxi(tmp_path) -> str:
+    p = tmp_path / "faketoxi"
     p.write_text("#!/usr/bin/env python3\nimport os\nprint(os.environ.get('FAKE_OUT', ''))\n")
     p.chmod(0o755)
     return str(p)
@@ -26,7 +26,7 @@ def _run(env_extra) -> subprocess.CompletedProcess:
 
 def test_hook_emits_context_for_unread(tmp_path):
     r = _run({
-        "CHAT_BIN": _fake_chat(tmp_path),
+        "TOXI_BIN": _fake_toxi(tmp_path),
         "FAKE_OUT": json.dumps([
             {"alias": "bob", "content": "hello"},
             {"alias": "carol", "content": "hola"},
@@ -41,10 +41,10 @@ def test_hook_emits_context_for_unread(tmp_path):
 
 
 def test_hook_silent_when_no_unread(tmp_path):
-    r = _run({"CHAT_BIN": _fake_chat(tmp_path), "FAKE_OUT": "[]"})
+    r = _run({"TOXI_BIN": _fake_toxi(tmp_path), "FAKE_OUT": "[]"})
     assert r.returncode == 0 and r.stdout.strip() == ""
 
 
-def test_hook_silent_when_chat_missing(tmp_path):
-    r = _run({"CHAT_BIN": "/nonexistent/chat-xyz"})
+def test_hook_silent_when_toxi_missing(tmp_path):
+    r = _run({"TOXI_BIN": "/nonexistent/toxi-xyz"})
     assert r.returncode == 0 and r.stdout.strip() == ""

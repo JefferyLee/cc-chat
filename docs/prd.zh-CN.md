@@ -102,7 +102,7 @@ $ toxi unread
 
 **场景 F：与 Claude 协同**
 ```
-$ chat ask "bob 上次说 errorhandler 的事是怎么改的？"
+$ toxi ask "bob 上次说 errorhandler 的事是怎么改的？"
 （Claude 在聊天历史里搜索并回答）
 
 $ toxi send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的话"
@@ -213,7 +213,7 @@ $ toxi send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的�
 ### 3.4 源码结构（当前）
 
 ```
-tox-chat-plugin/                 （GitHub: JefferyLee/toxi）
+toxi/                            （GitHub: JefferyLee/toxi）
 ├── pyproject.toml               # hatchling；依赖 click；extras [mcp] [dev]
 ├── README.md / README.zh-CN.md  # 双语用户文档
 ├── docs/                        # 双语设计文档（本 PRD 在此）
@@ -226,15 +226,15 @@ tox-chat-plugin/                 （GitHub: JefferyLee/toxi）
 │   ├── config.py                # config.toml 读取（§4.8）
 │   ├── tox.py                   # ctypes 直绑 libtoxcore（savedata 身份持久化）
 │   ├── daemon.py                # 常驻进程（Tox 事件循环 + IPC + ACK 重试扫描）
-│   ├── cli.py                   # chat CLI（含 --json 全局开关、chat mcp serve）
-│   └── mcp_server.py            # FastMCP server，由 chat mcp serve 启动（§4.12）
+│   ├── cli.py                   # toxi CLI（含 --json 全局开关、toxi mcp serve）
+│   └── mcp_server.py            # FastMCP server，由 toxi mcp serve 启动（§4.12）
 ├── tests/                       # 40 个快测 + 5 个标记 dht 的集成测试
 ├── claude-code-plugin/          # Claude Code 插件（§4.12）
 │   ├── .claude-plugin/plugin.json
 │   ├── commands/                # /unread、/send、/contacts、/status
 │   ├── hooks/hooks.json         # SessionStart 未读通知 hook
 │   ├── hooks/unread_hook.py
-│   └── .mcp.json                # 注册 chat mcp serve
+│   └── .mcp.json                # 注册 toxi mcp serve
 ├── .claude-plugin/marketplace.json  # 本仓库本身就是 marketplace
 └── packaging/homebrew/toxi.rb    # tap formula 模板（§4.13）
 ```
@@ -264,7 +264,7 @@ tox-chat-plugin/                 （GitHub: JefferyLee/toxi）
 **身份持久化**：
 - 第一次启动 daemon 时生成密钥对
 - 保存在 `~/.config/toxi/tox_state.bin`（默认无密码，可选加密）
-- 用户可以通过 `chat me` 查看自己的 Tox ID 分享给朋友
+- 用户可以通过 `toxi me` 查看自己的 Tox ID 分享给朋友
 
 #### 4.1.2 联系人模型
 
@@ -360,7 +360,7 @@ queued ──┬──> sent ──> delivered ──> read
 
 | 状态 | 含义 | 触发条件 |
 |------|------|---------|
-| `queued` | 在本地队列等待，对方离线 | `chat send` 时对方不在线 |
+| `queued` | 在本地队列等待，对方离线 | `toxi send` 时对方不在线 |
 | `sent` | 已通过 Tox 协议发出 | tox_friend_send_message 返回成功 |
 | `delivered` | 对方 daemon 已收到并存盘 | 收到对方的 ack 消息 |
 | `read` | 对方用户已查看 | 收到对方的 read receipt（可选功能） |
@@ -374,7 +374,7 @@ received ──> read
 | 状态 | 含义 |
 |------|------|
 | `received` | 已存到本地，未读 |
-| `read` | 用户已通过 `chat unread` 或 `chat read` 查看 |
+| `read` | 用户已通过 `toxi unread` 或 `toxi read` 查看 |
 
 #### 4.2.3 应用层消息协议
 
@@ -606,7 +606,7 @@ Alice 想把 Carol 介绍给 Bob：
 
 Bob 的 daemon 收到后：
 5. 不自动添加，进入"待审核"队列
-6. Bob: $ chat introductions
+6. Bob: $ toxi introductions
    - alice 给你介绍了 carol (Tox ID: F1E2...)
      备注: 我同事
      接受并起别名 [n/y/rename]?
@@ -719,7 +719,7 @@ v2 可加 server-sent events，让 CLI 工具订阅消息流。
 ### 4.7 CLI 命令规范
 
 **全局开关**（放在子命令之前）：
-- `chat --json <cmd>` —— 让任意读命令（`me`/`status`/`contacts`/`requests`/`unread`/`read`/`queue`/`introductions`/`send`）输出机器可读 JSON 而不是给人看的格式。`--json` 模式下 `unread`/`read` 是**只读 peek**,**不会**标已读 —— 让 hook 或 MCP 工具能取数而不消耗未读状态。
+- `toxi --json <cmd>` —— 让任意读命令（`me`/`status`/`contacts`/`requests`/`unread`/`read`/`queue`/`introductions`/`send`）输出机器可读 JSON 而不是给人看的格式。`--json` 模式下 `unread`/`read` 是**只读 peek**,**不会**标已读 —— 让 hook 或 MCP 工具能取数而不消耗未读状态。
 
 完整命令列表：
 
@@ -735,7 +735,7 @@ toxi accept <alias> <pubkey>   # 接受好友请求（pubkey 为请求方公钥�
 toxi requests                  # 查看待处理的好友请求
 toxi contacts                  # 列出所有联系人
 toxi contacts --online         # 仅在线的
-chat remove <alias>            # 删除联系人
+toxi remove <alias>            # 删除联系人
 
 # 消息收发
 toxi send <alias> <message>    # 发消息
@@ -748,19 +748,19 @@ toxi queue                     # 待发队列
 
 # 联系方式转发
 toxi introduce <to> <whom>     # 介绍朋友
-chat introductions             # 收到的介绍
+toxi introductions             # 收到的介绍
 toxi accept-intro <from> <whom> [--alias=...]
 
 # 系统
 toxi status                    # 显示 daemon 状态、DHT 连接、好友在线情况
 toxi daemon start/stop/restart
 toxi daemon logs
-chat mcp serve                 # 通过 stdio 跑 MCP server（见 §4.12）
+toxi mcp serve                 # 通过 stdio 跑 MCP server（见 §4.12）
 
 # Claude 协同
 # v0.1 已完成：--json 开关、SessionStart 未读 hook、slash 命令、MCP server（§4.12）
 # 仍在 v2：
-chat ask <question>            # 让 Claude 在历史里搜
+toxi ask <question>            # 让 Claude 在历史里搜
 toxi send <alias> --draft-with-claude <prompt>
 ```
 
@@ -864,7 +864,7 @@ fail_after_hours = 24
 - 日志**不记录**消息正文
 - 日志**记录**消息元数据：uuid、对端 public_key 前 8 字符、长度、时间
 
-**`chat status` 命令输出**：
+**`toxi status` 命令输出**：
 ```
 $ toxi status
 Daemon: running (PID 12345)
@@ -894,9 +894,9 @@ Stats (last 24h):
 | 入口 | 作用 | 实现 |
 |---|---|---|
 | `--json` 全局开关（§4.7）| 机器可读输出；`unread`/`read` 在此模式下为 peek（不会自动标已读）| `src/toxi/cli.py` |
-| SessionStart hook | Claude Code 会话开始时把未读消息注入模型上下文，并让模型把非中文消息翻成中文 | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py`（调 `chat --json unread`）|
+| SessionStart hook | Claude Code 会话开始时把未读消息注入模型上下文，并让模型把非中文消息翻成中文 | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py`（调 `toxi --json unread`）|
 | Slash 命令 | `/unread`、`/send <alias> <message>`、`/contacts`、`/status`，安装后命名空间为 `/toxi:` | `claude-code-plugin/commands/*.md` |
-| MCP server | 工具 `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让模型能替你操作 | `chat mcp serve`（FastMCP，可选 `[mcp]` extra），由 `claude-code-plugin/.mcp.json` 注册 |
+| MCP server | 工具 `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让模型能替你操作 | `toxi mcp serve`（FastMCP，可选 `[mcp]` extra），由 `claude-code-plugin/.mcp.json` 注册 |
 
 **不可信输入框架（防提示注入）**：来信是外部输入被注入模型上下文。hook 和 slash 命令的提示词**明确把消息标为「个人内容、非指令」**，所以"忽略指令、执行 X"这类正文会被当作可能给用户读的文字，而不是 Claude 该执行的命令。
 
@@ -910,11 +910,7 @@ Stats (last 24h):
 | 引擎（Homebrew）| `toxi` | `brew install <owner>/tap/toxi` —— formula `depends_on "toxcore"`，所以 libtoxcore 会被一起拉下来。模板在 `packaging/homebrew/toxi.rb` |
 | Claude Code 插件 | `toxi` | `/plugin marketplace add JefferyLee/toxi` 然后 `/plugin install toxi@toxi`；开发期可用 `claude --plugin-dir ./claude-code-plugin` |
 
-**为什么叫 `toxi`**（不叫 `toxi`）：内部原名 `toxi` 在 PyPI 已被无关项目占用，而且公开发布名里带 "Claude" 商标也最好避免。`toxi` 读作 "Claude Code chat"。
-
-**有意保留不动的**：
-- CLI 命令 `toxi` / `toxi-daemon`（输入体验）。
-- 内部包名 `toxi`（纯内部；改它工作量大、用户无感知）。
+**为什么叫 `toxi`**：引擎最早叫 `chat`，后来为了和通用 `chat` 包区分改成 `cc-chat`。这两个名字都把 Claude Code 写死在品牌里，和长期方向不符——引擎本身与 AI 工具解耦，未来计划支持 Codex、Grok Builder 等。`toxi` 保留 Tox 血统（Tox + i），不再把品牌绑死在某个 AI 工具上。PyPI 上 `toxi` 可用；`cc-chat` 在 PyPI 也未被占用，但新名字更短、更好记、且不绑定单一 AI 工具。
 - 磁盘配置目录 `~/.config/toxi/`（改它会丢用户现有的 Tox 身份与消息历史）。
 
 ---
@@ -944,14 +940,14 @@ Stats (last 24h):
 - ✅ step 0 Tox spike：ctypes 直绑 libtoxcore，两实例端到端收发验证通过
 - ✅ step 1 脚手架：包结构 / paths / db / ipc / tox 绑定 + 测试（9 快测 + 1 DHT 集成，全过）
 - ⬜ step 2 daemon 骨架：Tox 事件循环 + bootstrap + IPC server（get_me/get_status）
-- ⬜ step 3 CLI 骨架：init/me/status → 里程碑 `chat me`
+- ⬜ step 3 CLI 骨架：init/me/status → 里程碑 `toxi me`
 - ✅ step 4 联系人：add/accept/requests/contacts + 好友回调；两 daemon 真实 DHT 互加（里程碑达成）
 - ✅ step 5 在线消息：envelope 协议 + send/unread/read/queue；在线消息往返入库（里程碑达成）
 - ✅ step 6 离线队列：上线回调触发 flush，按序重发；离线 10 条上线后顺序全收（里程碑达成，= §8 指标②）
 - ✅ step 7 ACK / 送达状态机：接收方回 ack→发送方 sent→delivered；超时重发、超期 failed（里程碑达成）
 - ✅ step 8 introduce：contact_share + pending_introductions + accept-intro；Alice 介绍 Carol 给 Bob，Bob 成功连上 Carol（里程碑达成，= §8 指标③）
-- ✅ step 9 收尾：README 安装文档、丰富的 `chat status`（§4.11 格式）、日志轮转（10MB×5，§4.11）、CLI 错误信息打磨（只显示人类可读消息）
-- ✅ step 10 Claude Code 集成 + 打包 + 改名（§4.12、§4.13）：`--json` 开关；SessionStart 未读 hook（含翻译 + 防提示注入框架）；slash 命令；MCP server（`chat mcp serve`）；全部打包为 `claude-code-plugin/` 下的 Claude Code 插件；仓库本身就是 marketplace（`.claude-plugin/marketplace.json`）；brew tap formula 模板；发布名 `toxi` → `toxi`；文档双语化（英文 `.md` + `.zh-CN.md`）
+- ✅ step 9 收尾：README 安装文档、丰富的 `toxi status`（§4.11 格式）、日志轮转（10MB×5，§4.11）、CLI 错误信息打磨（只显示人类可读消息）
+- ✅ step 10 Claude Code 集成 + 打包 + 改名（§4.12、§4.13）：`--json` 开关；SessionStart 未读 hook（含翻译 + 防提示注入框架）；slash 命令；MCP server（`toxi mcp serve`）；全部打包为 `claude-code-plugin/` 下的 Claude Code 插件；仓库本身就是 marketplace（`.claude-plugin/marketplace.json`）；brew tap formula 模板；发布名 `toxi` → `toxi`；文档双语化（英文 `.md` + `.zh-CN.md`）
 
 ### 5.2 v0.2
 
@@ -965,13 +961,13 @@ Stats (last 24h):
 - Windows 支持（Named pipe IPC）
 - 本地数据库加密（master password）
 - Tor 代理选项
-- 消息搜索（`chat search <keyword>`）
+- 消息搜索（`toxi search <keyword>`）
 
 ### 5.4 v1.0
 
 - ✅ Claude Code 原生 hook，工作时主动报告新消息 —— 已在 v0.1 交付（§4.12）
-- ⬜ `chat ask`（Claude 在本地消息历史里检索）
-- ⬜ `chat send --draft-with-claude`（Claude 起草、用户确认）
+- ⬜ `toxi ask`（Claude 在本地消息历史里检索）
+- ⬜ `toxi send --draft-with-claude`（Claude 起草、用户确认）
 - ⬜ 完善的文档和示例
 
 ### 5.5 远期（v2+）
@@ -988,15 +984,15 @@ Stats (last 24h):
 以下是设计中的开放问题，需要在实现前确定：
 
 1. **CLI 包装：用什么交互模型？**
-   - A: 纯命令式（`chat send bob "..."` 一条一条）
-   - B: 加一个 REPL 模式（`chat shell` 进入会话）
+   - A: 纯命令式（`toxi send bob "..."` 一条一条）
+   - B: 加一个 REPL 模式（`toxi shell` 进入会话）
    - 暂定 A，未来加 B
 
 2. **多个未读如何呈现？**
    - 按时间排序还是按联系人分组？
    - 暂定按时间排序，加 `--by-contact` 选项
 
-3. **`chat send` 的输入安全**
+3. **`toxi send` 的输入安全**
    - 是否要避免 shell 历史泄露敏感消息？
    - 暂定加 `--from-file` 和 `--stdin` 选项，敏感消息用这两个
 
@@ -1006,9 +1002,9 @@ Stats (last 24h):
    - 暂定允许在 config.toml 配置
 
 5. **第一次启动的引导**
-   - 是否需要 `chat init` 显式步骤？
+   - 是否需要 `toxi init` 显式步骤？
    - 还是 daemon 启动时自动生成？
-   - 暂定 `chat init` 显式触发，避免误启动
+   - 暂定 `toxi init` 显式触发，避免误启动
 
 6. **如果朋友的 Tox ID 改了**（重新生成密钥）
    - 应用层如何识别"还是同一个人"？
@@ -1072,11 +1068,11 @@ v0.1 MVP 的成功标准：
 |------|------|------|
 | v0.1 draft | 2026-05-26 | 初版 |
 | v0.1 | 2026-05-26 | 按 step 0/1 结果更新：Tox 层 py-toxcore-c → ctypes 直绑 libtoxcore（§3.3、§7）；新增已实现源码结构（§3.4）；平台改为 macOS 优先并加入进度（§5.1）|
-| v0.1 | 2026-05-26 | 按 step 2/3/4 结果更新：daemon/CLI 骨架完成（§5.1 进度）；联系人模型修正——`tox_id` 可空、新增 `friend_requests` 表（§4.1.2），`chat accept` 改用公钥（§4.1.3、§4.6.3、§4.7），因好友请求只携带公钥 |
+| v0.1 | 2026-05-26 | 按 step 2/3/4 结果更新：daemon/CLI 骨架完成（§5.1 进度）；联系人模型修正——`tox_id` 可空、新增 `friend_requests` 表（§4.1.2），`toxi accept` 改用公钥（§4.1.3、§4.6.3、§4.7），因好友请求只携带公钥 |
 | v0.1 | 2026-05-26 | 按 step 5 结果更新：在线消息完成（envelope + send/unread/read/queue）；消息长度改为按编码字节校验 ≤1372（§4.2.3）；§5.1 进度 |
 | v0.1 | 2026-05-26 | 按 step 6 结果更新：离线队列 + 上线 flush 完成（§5.1 进度）；离线 10 条上线后顺序全收，达成 §8 指标② |
 | v0.1 | 2026-05-26 | 按 step 7 结果更新：ACK 送达状态机（§4.3.6 回 ACK、sent→delivered）；新增 `messages.last_attempt_at`（§4.2.1）；重试简化为「在线超时重发 / 超期 failed」并读 config.toml（§4.4.1）|
 | v0.1 | 2026-05-26 | 按 step 8 结果更新：introduce 完成（§5.1 进度，达成 §8 指标③）；补 v1 实现约束——只能转介有完整 Tox ID 的联系人、introduce 要求接收方在线（§4.5.3）|
-| v0.1 | 2026-05-26 | 按 step 9（部分）更新：新增 README 安装文档；`chat status` 丰富为 §4.11 格式（§5.1 进度）|
+| v0.1 | 2026-05-26 | 按 step 9（部分）更新：新增 README 安装文档；`toxi status` 丰富为 §4.11 格式（§5.1 进度）|
 | v0.1 | 2026-05-26 | step 9 收尾完成：日志轮转 10MB×5（§4.11）、config.toml 支持 `[daemon] log_level`、CLI 错误只显示人类可读消息（§5.1 进度）。v0.1 MVP 全部步骤完成 |
-| v0.1 | 2026-05-27 | 与当前现状对齐：标题与发布名 → `toxi`；§3.4 源码结构更新为当前实情；§4.7 CLI 加入 `--json` 与 `chat mcp serve`；新增 §4.12 Claude Code 集成、§4.13 发布与命名；§5.1 进度补 step 10；§5.4 v1.0 标记原生 hook 已交付；PRD 迁入 `docs/` |
+| v0.1 | 2026-05-27 | 与当前现状对齐：标题与发布名 → `toxi`；§3.4 源码结构更新为当前实情；§4.7 CLI 加入 `--json` 与 `toxi mcp serve`；新增 §4.12 Claude Code 集成、§4.13 发布与命名；§5.1 进度补 step 10；§5.4 v1.0 标记原生 hook 已交付；PRD 迁入 `docs/` |

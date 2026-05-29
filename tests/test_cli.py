@@ -1,4 +1,4 @@
-"""CLI tests. `init` needs no daemon; the rest drive the real `chat daemon
+"""CLI tests. `init` needs no daemon; the rest drive the real `toxi daemon
 start`/`stop` commands (spawning an actual daemon subprocess) and exercise the
 full CLI -> IPC -> daemon path.
 """
@@ -14,7 +14,7 @@ from toxi.cli import cli
 
 @pytest.fixture
 def home(monkeypatch):
-    d = tempfile.mkdtemp(prefix="cc-", dir="/tmp")  # short path for AF_UNIX
+    d = tempfile.mkdtemp(prefix="toxi-", dir="/tmp")  # short path for AF_UNIX
     monkeypatch.setenv("TOXI_HOME", d)
     yield d
     shutil.rmtree(d, ignore_errors=True)

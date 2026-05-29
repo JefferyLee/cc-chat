@@ -81,7 +81,7 @@ toxi set-name "Alice"
 toxi status     # "DHT: connected (UDP)" or "(TCP)" when ready
 ```
 
-`chat init` and the first `chat daemon start` create everything under `~/.config/toxi/`:
+`toxi init` and the first `toxi daemon start` create everything under `~/.config/toxi/`:
 
 ```
 ~/.config/toxi/
@@ -174,7 +174,7 @@ queued ──> sent ──> delivered ──> read
 - `delivered` — the other person's daemon stored it and ACKed.
 - `failed` — gave up after `fail_after_hours` with no ack (see §7).
 
-The CLI itself doesn't show this column today (it shows the human-friendly "sent" or "queued" after `chat send`). The full per-message state is in the SQLite database and accessible via `chat --json read <alias>`.
+The CLI itself doesn't show this column today (it shows the human-friendly "sent" or "queued" after `toxi send`). The full per-message state is in the SQLite database and accessible via `toxi --json read <alias>`.
 
 ---
 
@@ -182,7 +182,7 @@ The CLI itself doesn't show this column today (it shows the human-friendly "sent
 
 toxi is designed for asynchronous use — **don't worry about whether your friend is online**.
 
-- If they're offline when you `chat send`, the message goes into a local queue.
+- If they're offline when you `toxi send`, the message goes into a local queue.
 - When their daemon next reconnects, your daemon detects it and flushes the queue **in send order**.
 - The receiver dedups by message UUID and ACKs each one, so even retries are safe.
 
@@ -210,7 +210,7 @@ ack_timeout_minutes = 5     # resend an un-ACKed message after this long, while 
 fail_after_hours = 24       # mark as failed after this long without an ACK
 ```
 
-The daemon reads the file at start; restart it (`chat daemon stop && toxi daemon start`) after editing.
+The daemon reads the file at start; restart it (`toxi daemon stop && toxi daemon start`) after editing.
 
 ---
 
@@ -225,7 +225,7 @@ The daemon reads the file at start; restart it (`chat daemon stop && toxi daemon
 toxi introduce bob carol --note "my coworker"
 
 # Bob sees it on his side:
-chat introductions
+toxi introductions
 # [1 introduction(s)]
 #   alice introduced 'carol' (Tox ID: F1E2D3...)
 #     note: my coworker
@@ -326,7 +326,7 @@ toxi send bob "hi from alice"
 toxi unread                                # see Alice's message
 ```
 
-Clean up: `chat daemon stop` in each terminal, then `rm -rf /tmp/alice /tmp/bob`.
+Clean up: `toxi daemon stop` in each terminal, then `rm -rf /tmp/alice /tmp/bob`.
 
 ---
 
@@ -349,14 +349,14 @@ The daemon is **persistent**: leave it running. It auto-restarts nothing — if 
 |---|---|
 | `toxi` not found | `pipx ensurepath` and start a new shell |
 | `could not load libtoxcore` | Install it: macOS `brew install toxcore`; Linux distro package |
-| `daemon already running` | Another instance is up. Either keep it (just use it), or `chat daemon stop` then start. |
-| `chat status` keeps showing `DHT: not connected` | Wait 30–60s. If still not connecting, check outbound UDP is allowed (cafe Wi-Fi / corporate VPN can block it); Tox will fall back to TCP if UDP is fully blocked but it's slower. Restart the daemon. |
+| `daemon already running` | Another instance is up. Either keep it (just use it), or `toxi daemon stop` then start. |
+| `toxi status` keeps showing `DHT: not connected` | Wait 30–60s. If still not connecting, check outbound UDP is allowed (cafe Wi-Fi / corporate VPN can block it); Tox will fall back to TCP if UDP is fully blocked but it's slower. Restart the daemon. |
 | Friend you `add`-ed never comes online in your contacts | They have to accept first. Until then your side just shows them offline. Once accepted, both sides need DHT connectivity for the friend link. |
-| Can't `chat accept <alias> <prefix>` — "REQUEST_NOT_FOUND" | The prefix doesn't match any pending request. Try a longer prefix from `chat requests`. |
+| Can't `toxi accept <alias> <prefix>` — "REQUEST_NOT_FOUND" | The prefix doesn't match any pending request. Try a longer prefix from `toxi requests`. |
 | Message stuck at `queued` even though friend is online | The "online" status can lag. Wait one ack-timeout cycle (`ack_timeout_minutes`, default 5) — the retry sweep will resend. |
-| Hook injects nothing in Claude Code | Either nothing is unread, the daemon is down, or `toxi` isn't on PATH inside the Claude Code process. Set `CHAT_BIN` in the hook config (see `claude-code-plugin/hooks/unread_hook.py`). |
+| Hook injects nothing in Claude Code | Either nothing is unread, the daemon is down, or `toxi` isn't on PATH inside the Claude Code process. Set `TOXI_BIN` in the hook config (see `claude-code-plugin/hooks/unread_hook.py`). |
 | MCP tools don't show in `/mcp` | Plugin not installed, daemon not running, or `[mcp]` extra not installed. `pipx install --force 'toxi[mcp]'`. |
-| Lost my keys / `tox_state.bin` is gone | Your identity is the file. There is no recovery without a backup. You'll need to start over (`chat init`) and ask friends to re-add you. |
+| Lost my keys / `tox_state.bin` is gone | Your identity is the file. There is no recovery without a backup. You'll need to start over (`toxi init`) and ask friends to re-add you. |
 
 ---
 
