@@ -6,7 +6,7 @@ A practical, copy-pasteable manual. For an overview, see the [README](../README.
 
 cc-chat has **two pieces** you install separately:
 
-1. **The engine** (the `cc-chat` and `cc-cc-chat-daemon` commands + a background daemon + libtoxcore).
+1. **The engine** (the `cc-chat` and `cc-chat-daemon` commands + a background daemon + libtoxcore).
 2. **The Claude Code plugin** (slash commands, an unread-notification hook, an MCP server) — optional, but it's the whole point of the project.
 
 ---

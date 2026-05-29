@@ -174,7 +174,7 @@ $ cc-chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review �
 
 **两个进程**：
 
-1. **`cc-cc-chat-daemon`**：常驻后台进程
+1. **`cc-chat-daemon`**：常驻后台进程
    - 启动方式：用户登录时通过 systemd / launchd / 任务计划程序启动
    - 持续运行 Tox 实例，维护 DHT 连接
    - 监听 IPC，处理 CLI 命令
@@ -913,7 +913,7 @@ Stats (last 24h):
 **为什么叫 `cc-chat`**（不叫 `claude-chat`）：内部原名 `claude-chat` 在 PyPI 已被无关项目占用，而且公开发布名里带 "Claude" 商标也最好避免。`cc-chat` 读作 "Claude Code chat"。
 
 **有意保留不动的**：
-- CLI 命令 `cc-chat` / `cc-cc-chat-daemon`（输入体验）。
+- CLI 命令 `cc-chat` / `cc-chat-daemon`（输入体验）。
 - 内部包名 `claude_chat`（纯内部；改它工作量大、用户无感知）。
 - 磁盘配置目录 `~/.config/claude-chat/`（改它会丢用户现有的 Tox 身份与消息历史）。
 

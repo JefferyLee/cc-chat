@@ -12,7 +12,7 @@ end-to-end encrypted, and fully decentralized** — no servers, built on the
 
 Two processes (see the PRD §3.2):
 
-- **`cc-cc-chat-daemon`** — a background process that stays online, holds your Tox
+- **`cc-chat-daemon`** — a background process that stays online, holds your Tox
   identity, maintains the DHT connection, and receives messages into a local
   SQLite database.
 - **`cc-chat`** — the short-lived CLI you run for each command; it talks to the
@@ -44,7 +44,7 @@ pipx install cc-chat                                    # once published to PyPI
 pipx install 'cc-chat[mcp]'
 ```
 
-This installs two commands: `cc-chat` and `cc-cc-chat-daemon`. (The PyPI/Homebrew
+This installs two commands: `cc-chat` and `cc-chat-daemon`. (The PyPI/Homebrew
 distribution name is `cc-chat`; the import package is `claude_chat`.)
 
 ## Quick start

@@ -174,7 +174,7 @@ $ cc-chat send bob --draft-with-claude "write a thank-you note for the review"
 
 **Two processes**:
 
-1. **`cc-cc-chat-daemon`**: long-running background process
+1. **`cc-chat-daemon`**: long-running background process
    - Launched at user login via systemd / launchd / a scheduled task
    - Keeps a Tox instance running and maintains the DHT connection
    - Listens on IPC, handles CLI requests
@@ -915,7 +915,7 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 **Why `cc-chat`** (not `claude-chat`): the original internal name `claude-chat` is already taken on PyPI by an unrelated project, and using the "Claude" trademark in a public distribution name is best avoided. `cc-chat` reads as "Claude Code chat".
 
 **Kept unchanged on purpose**:
-- The CLI commands: `cc-chat` / `cc-cc-chat-daemon` (typing experience).
+- The CLI commands: `cc-chat` / `cc-chat-daemon` (typing experience).
 - The import package: `claude_chat` (purely internal; renaming would be churn for zero user benefit).
 - The on-disk config dir: `~/.config/claude-chat/` (renaming it would break the user's existing Tox identity and message history).
 

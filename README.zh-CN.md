@@ -10,7 +10,7 @@
 
 两个进程（参见 PRD §3.2）：
 
-- **`cc-cc-chat-daemon`** —— 常驻后台进程，持有你的 Tox 身份、维持 DHT 连接，并把收到的消息写入本地 SQLite。
+- **`cc-chat-daemon`** —— 常驻后台进程，持有你的 Tox 身份、维持 DHT 连接，并把收到的消息写入本地 SQLite。
 - **`cc-chat`** —— 短生命周期的 CLI，每次执行一条命令；通过 Unix socket 与 daemon 通信后退出。
 
 所有数据本地化：密钥放在 `~/.config/claude-chat/`，没有云端。通过任何渠道交换 Tox ID 即可加好友。
@@ -37,7 +37,7 @@ pipx install cc-chat                                        # 发布到 PyPI 后
 pipx install 'cc-chat[mcp]'
 ```
 
-会安装两个命令：`cc-chat` 和 `cc-cc-chat-daemon`。（PyPI/Homebrew 上的发布名是 `cc-chat`；Python 包名是 `claude_chat`。）
+会安装两个命令：`cc-chat` 和 `cc-chat-daemon`。（PyPI/Homebrew 上的发布名是 `cc-chat`；Python 包名是 `claude_chat`。）
 
 ## 快速上手
 

@@ -6,7 +6,7 @@
 
 cc-chat 分**两部分**，分别安装：
 
-1. **引擎**（`cc-chat` 与 `cc-cc-chat-daemon` 命令 + 后台 daemon + libtoxcore）。
+1. **引擎**（`cc-chat` 与 `cc-chat-daemon` 命令 + 后台 daemon + libtoxcore）。
 2. **Claude Code 插件**（slash 命令、未读通知 hook、MCP server）—— 可选，但这才是本项目的精髓。
 
 ---
