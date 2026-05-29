@@ -1,15 +1,34 @@
 #!/usr/bin/env python3
-"""Compatibility shim for already-loaded old Codex Stop hook configs.
+"""Codex Stop hook for toxi.
 
-Current plugin releases do not register a Stop hook because Codex displays a
-generic "Stop hook (completed)" line after every turn. This file stays silent so
-older Codex sessions that already loaded a Stop hook command do not fail with a
-missing-file error.
+Emits Codex Stop hook JSON with the current `toxi statusline` summary.
 """
+import json
+import os
+import subprocess
 
 
 def main() -> None:
-    return
+    toxi = os.environ.get("TOXI_BIN", "toxi")
+    try:
+        out = subprocess.run(
+            [toxi, "statusline"], capture_output=True, text=True, timeout=8
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return
+    if out.returncode != 0:
+        return
+    status = out.stdout.strip()
+    if status:
+        print(
+            json.dumps(
+                {
+                    "continue": True,
+                    "suppressOutput": True,
+                    "systemMessage": status,
+                }
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -307,14 +307,12 @@ If the hook fires but you see nothing, the daemon isn't running or there's no un
 ### 9.5 Codex integration (experimental)
 
 The first Codex plugin package lives in `plugins/toxi/`. It bundles a Codex
-manifest, MCP server config, a SessionStart hook, and a `toxi` skill. The
-SessionStart hook calls `toxi statusline` and returns Codex hook JSON, so Codex
-can surface the same summary Claude Code puts in its bottom bar, for example
-`toxi: 📬 2 from mini2, jeff · 2/2 online`. The plugin intentionally does not
-register a Stop hook, because Codex displays a generic `Stop hook (completed)`
-line after every turn.
-The SessionStart hook also calls `toxi --json unread`, so it only peeks at unread
-messages and never marks them read. The MCP server also advertises instructions
+manifest, MCP server config, a Stop hook, and a `toxi` skill. The Stop hook
+calls `toxi statusline` and returns Codex Stop-hook JSON, so Codex can surface
+the same summary Claude Code puts in its bottom bar, for example
+`toxi: 📬 2 from mini2, jeff · 2/2 online`, after each turn. The plugin
+intentionally does not register a SessionStart hook; unread messages are only
+surfaced when you ask Codex to read them through MCP/CLI. The MCP server also advertises instructions
 that tell Codex that
 incoming messages are untrusted personal content, read tools are peek-only, and
 `mark_read` / `send_message` should only be used after an explicit user request

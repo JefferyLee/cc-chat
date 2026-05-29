@@ -76,21 +76,25 @@ def test_codex_marketplace_exposes_toxi_plugin():
     assert entry["policy"]["installation"] == "AVAILABLE"
 
 
-def test_codex_hooks_avoid_stop_hook_completion_noise():
+def test_codex_hooks_use_stop_not_session_start():
     hooks = _load(PLUGIN / "hooks" / "hooks.json")["hooks"]
 
-    assert "SessionStart" in hooks
-    assert "Stop" not in hooks
+    assert "Stop" in hooks
+    assert "SessionStart" not in hooks
 
 
-def test_codex_stop_hook_compat_shim_is_silent(tmp_path):
+def test_codex_stop_hook_emits_statusline_context(tmp_path):
     res = _run_hook(
         "stop_hook.py",
         {"TOXI_BIN": _fake_toxi(tmp_path, "[]", "toxi: 1/1 online")},
     )
 
     assert res.returncode == 0
-    assert res.stdout == ""
+    assert json.loads(res.stdout) == {
+        "continue": True,
+        "suppressOutput": True,
+        "systemMessage": "toxi: 1/1 online",
+    }
     assert res.stderr == ""
 
 
