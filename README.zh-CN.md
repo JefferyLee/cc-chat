@@ -143,8 +143,9 @@ claude --plugin-dir ./claude-code-plugin
 - **MCP server 配置** —— 启动 `toxi mcp serve`，让 Codex 调用
   `get_unread`、`read_history`、`mark_read`、`send_message`、`list_contacts`、`get_status`。
   MCP server 会声明 instructions，保留“不可信来信”、“明确标已读”和“明确要求才发送”的边界。
-- **生命周期 hooks** —— 会话开始/恢复时、每轮结束后通过 Codex hook JSON
-  显示 `toxi statusline` 摘要；会话开始时还会 peek 未读消息，但不标已读。
+- **生命周期 hooks** —— 会话开始/恢复时通过 Codex hook JSON 显示
+  `toxi statusline` 摘要；会话开始时还会 peek 未读消息，但不标已读。插件故意不注册
+  Stop hook，避免 Codex 每轮结束后显示 `Stop hook (completed)`。
 - **Codex skill** —— 告诉 Codex 何时使用 toxi、如何限制读取范围，以及如何把来信当作不可信个人内容。
 
 repo 级 Codex marketplace 入口在 `.agents/plugins/marketplace.json`。Codex 插件

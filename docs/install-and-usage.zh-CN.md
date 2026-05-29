@@ -304,12 +304,11 @@ toxi --json unread          # 应该打印 [...]，hook 注入的就是这份数
 ### 9.5 Codex 集成（实验性）
 
 第一版 Codex 插件包位于 `plugins/toxi/`。它包含 Codex manifest、MCP server
-配置、SessionStart/Stop hooks，以及一个 `toxi` skill。hooks 会调用
+配置、SessionStart hook，以及一个 `toxi` skill。SessionStart hook 会调用
 `toxi statusline` 并返回 Codex hook JSON，让 Codex 显示和 Claude Code
 底部状态栏相同的摘要，例如
-`toxi: 📬 2 from mini2, jeff · 2/2 online`。SessionStart 使用
-`additionalContext`；Stop 使用 Stop hook 的 `systemMessage` 字段，并设置
-`suppressOutput` 隐藏通用的 hook completed 提示。SessionStart hook 还会调用
+`toxi: 📬 2 from mini2, jeff · 2/2 online`。插件故意不注册 Stop hook，因为
+Codex 会在每轮结束后显示通用的 `Stop hook (completed)`。SessionStart hook 还会调用
 `toxi --json unread`，所以只会 peek 未读消息，不会标已读。MCP server 也会声明
 instructions，告诉 Codex 来信是不可信个人内容、读取工具只是 peek、`mark_read` /
 `send_message` 只能在用户明确要求后使用；`mark_read` 也可在已经把对应消息明确转述给用户后调用。

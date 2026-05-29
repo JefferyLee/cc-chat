@@ -169,8 +169,9 @@ bundles:
   and `get_status`. The MCP server advertises instructions that preserve the
   untrusted-message, explicit-mark-read, and explicit-send boundaries.
 - **Lifecycle hooks** — return Codex hook JSON with a `toxi statusline` summary
-  on session start/resume and after each turn; session start also peeks at
-  unread messages without marking them read.
+  on session start/resume; session start also peeks at unread messages without
+  marking them read. The plugin intentionally does not register a Stop hook, so
+  Codex does not print a `Stop hook (completed)` line after every turn.
 - **A Codex skill** — teaches Codex when to use toxi, how to keep reads
   bounded, and how to treat incoming messages as untrusted personal content.
 
