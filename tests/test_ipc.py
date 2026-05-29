@@ -2,7 +2,7 @@ import socket
 
 import pytest
 
-from claude_chat import ipc
+from toxi import ipc
 
 
 def test_roundtrip():

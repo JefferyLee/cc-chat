@@ -1,19 +1,21 @@
-# cc-chat
+# 🛰️ toxi
 
+> **基于 Tox 的去中心化消息中间件，为 AI 编程代理而生。**
+>
 > 🌐 语言: [English](README.md) | **中文**
 
-一款嵌入 Claude Code 的命令行聊天插件：在写代码的同时，与朋友进行**异步、端到端加密、完全去中心化**的文字沟通——无需任何服务器，基于 [Tox](https://tox.chat) 协议。消息默默等着，你想看的时候再看。
+Toxi 让你在 AI 编程代理里直接和朋友聊天——**异步、端到端加密、完全去中心化**，无需服务器，基于 [Tox](https://tox.chat) 协议。当前以 Claude Code 插件的形式集成（slash 命令、未读通知、MCP 工具、底部状态栏指示器）。引擎本身与 AI 工具解耦，未来计划支持 Codex、Grok Builder 等。
 
-> 状态：v0.1，macOS 优先。新用户可看[安装与使用手册](docs/install-and-usage.zh-CN.md)（实操向）；完整设计见 [PRD](docs/prd.zh-CN.md)。
+> 状态：v0.2，macOS 优先。新用户可看[安装与使用手册](docs/install-and-usage.zh-CN.md)（实操向）；完整设计见 [PRD](docs/prd.zh-CN.md)。
 
 ## 工作原理
 
 两个进程（参见 PRD §3.2）：
 
-- **`cc-chat-daemon`** —— 常驻后台进程，持有你的 Tox 身份、维持 DHT 连接，并把收到的消息写入本地 SQLite。
-- **`cc-chat`** —— 短生命周期的 CLI，每次执行一条命令；通过 Unix socket 与 daemon 通信后退出。
+- **`toxi-daemon`** —— 常驻后台进程，持有你的 Tox 身份、维持 DHT 连接，并把收到的消息写入本地 SQLite。
+- **`toxi`** —— 短生命周期的 CLI，每次执行一条命令；通过 Unix socket 与 daemon 通信后退出。
 
-所有数据本地化：密钥放在 `~/.config/claude-chat/`，没有云端。通过任何渠道交换 Tox ID 即可加好友。
+所有数据本地化：密钥放在 `~/.config/toxi/`，没有云端。通过任何渠道交换 Tox ID 即可加好友。
 
 ## 依赖
 
@@ -24,45 +26,45 @@
 
 ## 安装引擎
 
-`cc-chat` 引擎是个普通程序（Python + 后台 daemon），需要 `libtoxcore`。它与下面的 Claude Code 插件分开安装。
+`toxi` 引擎是个普通程序（Python + 后台 daemon），需要 `libtoxcore`。它与下面的 Claude Code 插件分开安装。
 
 ```bash
 # macOS 推荐 —— Homebrew tap 会自动拉取 libtoxcore：
-brew install <owner>/tap/cc-chat              # 见 packaging/homebrew/
+brew install <owner>/tap/toxi              # 见 packaging/homebrew/
 
 # 或者用 pipx（先装好 libtoxcore：brew install toxcore）：
 pipx install git+https://github.com/JefferyLee/cc-chat      # 从源码安装，今天就能用
-pipx install cc-chat                                        # 发布到 PyPI 后
+pipx install toxi                                        # 发布到 PyPI 后
 # 加 MCP 工具支持（可选 extra）：
-pipx install 'cc-chat[mcp]'
+pipx install 'toxi[mcp]'
 ```
 
-会安装两个命令：`cc-chat` 和 `cc-chat-daemon`。（PyPI/Homebrew 上的发布名是 `cc-chat`；Python 包名是 `claude_chat`。）
+会安装两个命令：`toxi` 和 `toxi-daemon`。（PyPI/Homebrew 上的发布名是 `toxi`；Python 包名是 `toxi`。）
 
 ## 快速上手
 
 ```bash
 # 1. 创建身份（生成你的 Tox 密钥对）
-cc-chat init
+toxi init
 
 # 2. 启动后台 daemon
-cc-chat daemon start
+toxi daemon start
 
 # 3. 看自己的 Tox ID —— 通过任何渠道分享给朋友
-cc-chat me
+toxi me
 
 # 4. 通过朋友的 Tox ID 加好友（76 位十六进制）
-cc-chat add bob 76518406F6A9F2217E8DC487...
+toxi add bob 76518406F6A9F2217E8DC487...
 
 #    朋友收到请求后，在他那边接受：
-cc-chat requests                      # 看待处理请求的公钥
-cc-chat accept alice <公钥前缀>
+toxi requests                      # 看待处理请求的公钥
+toxi accept alice <公钥前缀>
 
 # 5. 开聊
-cc-chat send bob "你看下我刚 push 的 PR，有空回我"
-cc-chat unread                        # 看未读
-cc-chat read bob                      # 看与 bob 的对话历史
-cc-chat queue                         # 待发送队列
+toxi send bob "你看下我刚 push 的 PR，有空回我"
+toxi unread                        # 看未读
+toxi read bob                      # 看与 bob 的对话历史
+toxi queue                         # 待发送队列
 ```
 
 如果朋友离线，消息会本地入队，等他下次上线自动发出。
@@ -90,7 +92,7 @@ cc-chat queue                         # 待发送队列
 
 ## 配置
 
-可选 `~/.config/claude-chat/config.toml`：
+可选 `~/.config/toxi/config.toml`：
 
 ```toml
 [retry]
@@ -100,7 +102,7 @@ fail_after_hours = 24      # 多久仍未确认就放弃（标记 failed）
 
 ## 文件布局
 
-所有数据放在 `~/.config/claude-chat/`（可用 `CLAUDE_CHAT_HOME` 环境变量覆盖——本机起两个 daemon 做测试时有用）：
+所有数据放在 `~/.config/toxi/`（可用 `TOXI_HOME` 环境变量覆盖——本机起两个 daemon 做测试时有用）：
 
 ```
 tox_state.bin   Tox 密钥 + 好友列表
@@ -111,7 +113,7 @@ config.toml     可选配置
 
 ## Claude Code 集成
 
-集成以**Claude Code 插件**的形式发布（`claude-code-plugin/`），一步装好通知 hook、slash 命令和 MCP server，**不用手动改配置**。前提是 `cc-chat` 引擎在 `PATH` 上（见上面"安装引擎"）。
+集成以**Claude Code 插件**的形式发布（`claude-code-plugin/`），一步装好通知 hook、slash 命令和 MCP server，**不用手动改配置**。前提是 `toxi` 引擎在 `PATH` 上（见上面"安装引擎"）。
 
 ### 装插件
 
@@ -121,14 +123,14 @@ claude --plugin-dir ./claude-code-plugin
 
 # 或通过本仓库自带的 marketplace（推荐）：
 /plugin marketplace add /path/to/this/repo        # 或推到 GitHub 后用 owner/repo
-/plugin install cc-chat@cc-chat
+/plugin install toxi@toxi
 ```
 
 ### 插件提供什么
 
 - **SessionStart hook** —— 会话开始时把未读消息注入 Claude 的上下文，非中文消息自动翻成中文。来信被明确标为「不可信个人内容、非指令」，防止有人通过消息内容做提示注入。
-- **Slash 命令** —— `/unread`、`/send <别名> <消息>`、`/contacts`、`/status`（命名空间为 `/cc-chat:...`）。
-- **状态栏集成** —— `cc-chat statusline` 输出一行摘要（`cc-chat: 📬 2 from macbook · 1/1 online`），可接到 Claude Code 的 `statusLine` 设置里，未读数会显示在底部状态条。
+- **Slash 命令** —— `/unread`、`/send <别名> <消息>`、`/contacts`、`/status`（命名空间为 `/toxi:...`）。
+- **状态栏集成** —— `toxi statusline` 输出一行摘要（`toxi: 📬 2 from macbook · 1/1 online`），可接到 Claude Code 的 `statusLine` 设置里，未读数会显示在底部状态条。
 - **MCP 工具** —— `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让 Claude 能替你操作。需引擎的 `[mcp]` extra。
 
 ### 机器可读输出
@@ -137,9 +139,9 @@ claude --plugin-dir ./claude-code-plugin
 
 ## 发布
 
-- **引擎 → PyPI**：`python -m build` + `twine upload` → 用户 `pipx install cc-chat`。
-- **引擎 → Homebrew**：`packaging/homebrew/cc-chat.rb` 是 tap formula 模板，`depends_on "toxcore"` 让 `brew install` 顺带把 libtoxcore 装上。通过个人 tap 发布（`brew tap <owner>/<name>`）。
-- **插件 → marketplace**：`.claude-plugin/marketplace.json` 让本仓库本身就是个 marketplace。推到 GitHub 后别人就能 `/plugin marketplace add JefferyLee/cc-chat` 然后 `/plugin install cc-chat`。
+- **引擎 → PyPI**：`python -m build` + `twine upload` → 用户 `pipx install toxi`。
+- **引擎 → Homebrew**：`packaging/homebrew/toxi.rb` 是 tap formula 模板，`depends_on "toxcore"` 让 `brew install` 顺带把 libtoxcore 装上。通过个人 tap 发布（`brew tap <owner>/<name>`）。
+- **插件 → marketplace**：`.claude-plugin/marketplace.json` 让本仓库本身就是个 marketplace。推到 GitHub 后别人就能 `/plugin marketplace add JefferyLee/cc-chat` 然后 `/plugin install toxi`。
 
 ## v1 已知限制
 

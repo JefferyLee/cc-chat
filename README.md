@@ -1,24 +1,28 @@
-# cc-chat
+# 🛰️ toxi
 
+> **Decentralized messaging for AI coding agents, over Tox.**
+>
 > 🌐 Languages: **English** | [中文](README.zh-CN.md)
 
-A command-line chat plugin for Claude Code: talk to friends **asynchronously,
-end-to-end encrypted, and fully decentralized** — no servers, built on the
-[Tox](https://tox.chat) protocol. Messages wait quietly until you look at them.
+Toxi lets you talk to friends from inside your AI coding agent — **asynchronously,
+end-to-end encrypted, fully decentralized** — no servers, built on the
+[Tox](https://tox.chat) protocol. Today it ships as a Claude Code plugin (slash
+commands, unread notifications, MCP tools, status-bar indicator). The engine is
+agent-agnostic; future targets include Codex, Grok Builder, and others.
 
-> Status: v0.1, macOS-first. New here? Read the [install & usage guide](docs/install-and-usage.md) for a walkthrough; for the full design see the [PRD](docs/prd.md).
+> Status: v0.2, macOS-first. New here? Read the [install & usage guide](docs/install-and-usage.md) for a walkthrough; for the full design see the [PRD](docs/prd.md).
 
 ## How it works
 
 Two processes (see the PRD §3.2):
 
-- **`cc-chat-daemon`** — a background process that stays online, holds your Tox
+- **`toxi-daemon`** — a background process that stays online, holds your Tox
   identity, maintains the DHT connection, and receives messages into a local
   SQLite database.
-- **`cc-chat`** — the short-lived CLI you run for each command; it talks to the
+- **`toxi`** — the short-lived CLI you run for each command; it talks to the
   daemon over a Unix socket and exits.
 
-Everything is local: your keys live in `~/.config/claude-chat/`, and there is no
+Everything is local: your keys live in `~/.config/toxi/`, and there is no
 cloud. You add friends by exchanging Tox IDs through any channel you like.
 
 ## Requirements
@@ -30,47 +34,47 @@ cloud. You add friends by exchanging Tox IDs through any channel you like.
 
 ## Install the engine
 
-The `cc-chat` engine is a normal program (Python + a background daemon) that needs
+The `toxi` engine is a normal program (Python + a background daemon) that needs
 `libtoxcore`. It installs separately from the Claude Code plugin below.
 
 ```bash
 # macOS, recommended — a Homebrew tap pulls libtoxcore in automatically:
-brew install <owner>/tap/cc-chat              # see packaging/homebrew/
+brew install <owner>/tap/toxi              # see packaging/homebrew/
 
 # or with pipx (install libtoxcore yourself first: brew install toxcore):
 pipx install git+https://github.com/JefferyLee/cc-chat      # from source, today
-pipx install cc-chat                                    # once published to PyPI
+pipx install toxi                                    # once published to PyPI
 # add MCP tools support with the extra:
-pipx install 'cc-chat[mcp]'
+pipx install 'toxi[mcp]'
 ```
 
-This installs two commands: `cc-chat` and `cc-chat-daemon`. (The PyPI/Homebrew
-distribution name is `cc-chat`; the import package is `claude_chat`.)
+This installs two commands: `toxi` and `toxi-daemon`. (The PyPI/Homebrew
+distribution name is `toxi`; the import package is `toxi`.)
 
 ## Quick start
 
 ```bash
 # 1. Create your identity (generates your Tox keypair)
-cc-chat init
+toxi init
 
 # 2. Start the background daemon
-cc-chat daemon start
+toxi daemon start
 
 # 3. See your own Tox ID — share it with a friend over any channel
-cc-chat me
+toxi me
 
 # 4. Add a friend by their Tox ID (76 hex chars)
-cc-chat add bob 76518406F6A9F2217E8DC487...
+toxi add bob 76518406F6A9F2217E8DC487...
 
 #    Your friend, after you've added them, accepts the request on their side:
-cc-chat requests                      # shows the pending request's public key
-cc-chat accept alice <public-key-prefix>
+toxi requests                      # shows the pending request's public key
+toxi accept alice <public-key-prefix>
 
 # 5. Chat
-cc-chat send bob "你看下我刚 push 的 PR，有空回我"
-cc-chat unread                        # show unread messages
-cc-chat read bob                      # conversation history with bob
-cc-chat queue                         # messages waiting to be delivered
+toxi send bob "你看下我刚 push 的 PR，有空回我"
+toxi unread                        # show unread messages
+toxi read bob                      # conversation history with bob
+toxi queue                         # messages waiting to be delivered
 ```
 
 If you message a friend who is offline, the message is queued locally and sent
@@ -99,7 +103,7 @@ automatically when they next come online.
 
 ## Configuration
 
-Optional `~/.config/claude-chat/config.toml`:
+Optional `~/.config/toxi/config.toml`:
 
 ```toml
 [retry]
@@ -109,8 +113,8 @@ fail_after_hours = 24      # give up (mark failed) after this long
 
 ## Files
 
-Everything lives under `~/.config/claude-chat/` (override with the
-`CLAUDE_CHAT_HOME` environment variable — useful for running two daemons on one
+Everything lives under `~/.config/toxi/` (override with the
+`TOXI_HOME` environment variable — useful for running two daemons on one
 machine during testing):
 
 ```
@@ -123,7 +127,7 @@ config.toml     optional configuration
 ## Claude Code integration
 
 The integration ships as a **Claude Code plugin** (`claude-code-plugin/`) that
-wires up everything in one step — no manual config editing. It needs the `cc-chat`
+wires up everything in one step — no manual config editing. It needs the `toxi`
 engine on your `PATH` (see "Install the engine" above).
 
 ### Install the plugin
@@ -134,7 +138,7 @@ claude --plugin-dir ./claude-code-plugin
 
 # Or via the bundled marketplace (this repo is its own marketplace):
 /plugin marketplace add /path/to/this/repo        # or: owner/repo once on GitHub
-/plugin install cc-chat@cc-chat
+/plugin install toxi@toxi
 ```
 
 ### What the plugin provides
@@ -144,9 +148,9 @@ claude --plugin-dir ./claude-code-plugin
   are treated as untrusted personal content, never as instructions, so a message
   can't hijack your session.
 - **Slash commands** — `/unread`, `/send <alias> <message>`,
-  `/contacts`, `/status` (namespaced as `/cc-chat:...`).
-- **Status-line integration** — `cc-chat statusline` prints a one-line summary
-  (`cc-chat: 📬 2 from macbook · 1/1 online`) you can wire into Claude Code's
+  `/contacts`, `/status` (namespaced as `/toxi:...`).
+- **Status-line integration** — `toxi statusline` prints a one-line summary
+  (`toxi: 📬 2 from macbook · 1/1 online`) you can wire into Claude Code's
   `statusLine` setting to see unread counts in the bottom bar.
 - **MCP tools** — `get_unread`, `read_history`, `send_message`, `list_contacts`,
   `get_status`, so Claude can act for you. Needs the engine's `[mcp]` extra.
@@ -160,13 +164,13 @@ are a read-only **peek** — they do *not* mark messages read.
 ## Distribution
 
 - **Engine → PyPI:** `python -m build` + `twine upload` → users get
-  `pipx install cc-chat`.
-- **Engine → Homebrew:** `packaging/homebrew/cc-chat.rb` is a tap formula
+  `pipx install toxi`.
+- **Engine → Homebrew:** `packaging/homebrew/toxi.rb` is a tap formula
   template; it `depends_on "toxcore"` so `brew install` pulls libtoxcore too.
   Publish via a personal tap (`brew tap <owner>/<name>`).
 - **Plugin → marketplace:** `.claude-plugin/marketplace.json` makes this repo a
   marketplace. Push to GitHub and users run
-  `/plugin marketplace add JefferyLee/cc-chat` then `/plugin install cc-chat`.
+  `/plugin marketplace add JefferyLee/cc-chat` then `/plugin install toxi`.
 
 ## Limitations (v1)
 

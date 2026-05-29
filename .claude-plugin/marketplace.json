@@ -1,15 +1,15 @@
 {
-  "name": "cc-chat",
-  "description": "Claude Code integration for cc-chat: decentralized, encrypted Tox messaging with unread notifications, slash commands, and MCP tools.",
+  "name": "toxi",
+  "description": "🛰️ Toxi — decentralized messaging for AI coding agents, over Tox. Unread notifications, slash commands, MCP tools, and a bottom-bar status indicator.",
   "owner": {
     "name": "Jeffery Li",
     "email": "zhipeng.li@gmail.com"
   },
   "plugins": [
     {
-      "name": "cc-chat",
+      "name": "toxi",
       "source": "./claude-code-plugin",
-      "description": "Tox-based decentralized, encrypted chat integration for Claude Code (notifications hook, slash commands, MCP tools)."
+      "description": "Tox-based decentralized messaging for AI coding agents (notifications hook, slash commands, MCP tools, status-bar indicator)."
     }
   ]
 }

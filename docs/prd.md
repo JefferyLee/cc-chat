@@ -1,4 +1,4 @@
-# cc-chat — Claude Code CLI Chat Plugin (PRD)
+# toxi — Claude Code CLI Chat Plugin (PRD)
 
 > 🌐 Languages: **English** | [中文](prd.zh-CN.md)
 
@@ -48,14 +48,14 @@ Developers using Claude Code often need to message colleagues or friends but don
 **Scenario A: send an async message**
 ```
 Alice is coding and wants to ask Bob something.
-$ cc-chat send bob "can you take a look at the PR I just pushed?"
+$ toxi send bob "can you take a look at the PR I just pushed?"
 ✓ sent
 (Alice keeps coding; doesn't wait for a reply)
 ```
 
 **Scenario B: check unread messages**
 ```
-$ cc-chat unread
+$ toxi unread
 [3 unread]
 1. bob (10 min ago): looked at it; suggest renaming the errorhandler
 2. carol (1 hour ago): hiking this weekend?
@@ -64,10 +64,10 @@ $ cc-chat unread
 
 **Scenario C: send while the recipient is offline**
 ```
-$ cc-chat send bob "good night"
+$ toxi send bob "good night"
 ✓ recipient is offline; will send when they come online (queued locally)
 
-$ cc-chat queue
+$ toxi queue
 [2 queued]
 - bob: "good night" (queued 5 min ago)
 - carol: "meeting tomorrow 9am" (queued 1 hour ago)
@@ -77,12 +77,12 @@ $ cc-chat queue
 ```
 Bob shares his Tox ID with Alice through some other channel (email, WeChat, etc.).
 
-$ cc-chat add bob 76518406F6A9F2217E8DC487...   (76-char Tox ID)
+$ toxi add bob 76518406F6A9F2217E8DC487...   (76-char Tox ID)
 ✓ Added bob to contacts.
   Sending friend request... waiting for them to accept.
 
 # Alice's own Tox ID:
-$ cc-chat me
+$ toxi me
 Your Tox ID: A1B2C3D4E5F6...
 (Share this with friends so they can add you)
 ```
@@ -90,11 +90,11 @@ Your Tox ID: A1B2C3D4E5F6...
 **Scenario E: introduce someone**
 ```
 Alice wants to introduce Carol to Bob:
-$ cc-chat introduce bob carol
+$ toxi introduce bob carol
 ✓ Sent Carol's contact to bob
 
 # Bob sees:
-$ cc-chat unread
+$ toxi unread
 [1 contact-share invitation]
 - alice introduced you to carol (Tox ID: F1E2D3...)
   Accept [y/n]?
@@ -105,7 +105,7 @@ $ cc-chat unread
 $ chat ask "what did bob say last time about the errorhandler?"
 (Claude searches the chat history and answers)
 
-$ cc-chat send bob --draft-with-claude "write a thank-you note for the review"
+$ toxi send bob --draft-with-claude "write a thank-you note for the review"
 (Claude drafts; user confirms before sending)
 ```
 
@@ -130,7 +130,7 @@ $ cc-chat send bob --draft-with-claude "write a thank-you note for the review"
 │                                                          │
 │  ┌─────────────────┐    ┌────────────────────────────┐   │
 │  │  Claude Code    │    │  CLI commands              │   │
-│  │  (chat context) │    │  $ cc-chat send / read / add  │   │
+│  │  (chat context) │    │  $ toxi send / read / add  │   │
 │  └────────┬────────┘    └─────────────┬──────────────┘   │
 │           │                            │                 │
 │           └────────────┬───────────────┘                 │
@@ -174,13 +174,13 @@ $ cc-chat send bob --draft-with-claude "write a thank-you note for the review"
 
 **Two processes**:
 
-1. **`cc-chat-daemon`**: long-running background process
+1. **`toxi-daemon`**: long-running background process
    - Launched at user login via systemd / launchd / a scheduled task
    - Keeps a Tox instance running and maintains the DHT connection
    - Listens on IPC, handles CLI requests
    - Receives messages and writes them to SQLite
 
-2. **`cc-chat`**: the CLI invoked for each command
+2. **`toxi`**: the CLI invoked for each command
    - Short-lived: runs one command and exits
    - Talks to the daemon over IPC
    - Formats output for the terminal
@@ -217,8 +217,8 @@ tox-chat-plugin/                 (GitHub: JefferyLee/cc-chat)
 ├── pyproject.toml               # hatchling; deps: click; extras: [mcp] [dev]
 ├── README.md / README.zh-CN.md  # bilingual user docs
 ├── docs/                        # bilingual design docs (this PRD lives here)
-├── src/claude_chat/             # the engine (PyPI distribution name: `cc-chat`)
-│   ├── paths.py                 # config dir; CLAUDE_CHAT_HOME override for test isolation
+├── src/toxi/             # the engine (PyPI distribution name: `toxi`)
+│   ├── paths.py                 # config dir; TOXI_HOME override for test isolation
 │   ├── db.py                    # SQLite schema (§4.1, §4.2, §4.5) + idempotent connect()
 │   ├── ipc.py                   # length-prefixed JSON frame codec (§4.6.2)
 │   ├── client.py                # thin IPC client shared by CLI and tests
@@ -226,7 +226,7 @@ tox-chat-plugin/                 (GitHub: JefferyLee/cc-chat)
 │   ├── config.py                # config.toml reader (§4.8)
 │   ├── tox.py                   # ctypes binding to libtoxcore (savedata identity persistence)
 │   ├── daemon.py                # resident process (Tox loop + IPC + ACK retry sweep)
-│   ├── cli.py                   # `cc-chat` CLI (incl. --json group flag and `chat mcp serve`)
+│   ├── cli.py                   # `toxi` CLI (incl. --json group flag and `chat mcp serve`)
 │   └── mcp_server.py            # FastMCP server exposed by `chat mcp serve` (§4.12)
 ├── tests/                       # 40 fast + 5 DHT-marked integration tests
 ├── claude-code-plugin/          # the Claude Code plugin (§4.12)
@@ -236,14 +236,14 @@ tox-chat-plugin/                 (GitHub: JefferyLee/cc-chat)
 │   ├── hooks/unread_hook.py
 │   └── .mcp.json                # registers `chat mcp serve`
 ├── .claude-plugin/marketplace.json  # this repo IS its own marketplace
-└── packaging/homebrew/cc-chat.rb    # tap formula template (§4.13)
+└── packaging/homebrew/toxi.rb    # tap formula template (§4.13)
 ```
 
 Conventions:
 - **The daemon is the sole writer of SQLite**; the CLI accesses data only via IPC, never opening the database directly.
 - `tox.py` doesn't depend on any PyPI Tox package; at runtime it only needs the system's libtoxcore.
 - **Code (everything except `docs/`) is English-only**; **docs are bilingual** (English file is canonical, `<name>.zh-CN.md` is Chinese, with a language switcher at the top of each).
-- **Distribution name is `cc-chat`**; the import package stays `claude_chat`, and the on-disk config dir stays `~/.config/claude-chat/` (see §4.13).
+- **Distribution name is `toxi`**; the import package stays `toxi`, and the on-disk config dir stays `~/.config/toxi/` (see §4.13).
 
 ---
 
@@ -263,7 +263,7 @@ Each user's identity = a Curve25519 key pair (generated by toxcore).
 
 **Identity persistence**:
 - The first time the daemon starts, it generates a key pair
-- Saved to `~/.config/claude-chat/tox_state.bin` (no password by default; optional encryption)
+- Saved to `~/.config/toxi/tox_state.bin` (no password by default; optional encryption)
 - Users can run `chat me` to see and share their Tox ID
 
 #### 4.1.2 Contact model
@@ -310,13 +310,13 @@ CREATE TABLE friend_requests (
 Alice adds Bob:
 
 1. Alice obtains Bob's Tox ID (any channel: in person, email, etc.)
-2. $ cc-chat add bob <bob_tox_id>
+2. $ toxi add bob <bob_tox_id>
 3. The daemon calls tox_friend_add(), sending a friend request (with optional text)
 4. The request reaches Bob's daemon via the DHT
-5. Bob sees the request: $ cc-chat requests
+5. Bob sees the request: $ toxi requests
    - public key A1B2... (64 chars): "hi I'm alice, friend me?"
 6. Bob accepts and assigns a local alias:
-   $ cc-chat accept alice <pubkey-prefix>
+   $ toxi accept alice <pubkey-prefix>
    The daemon uses the request's public key to call tox_friend_add_norequest()
 7. Each side sees the other in their contact list (on Bob's side, alice's tox_id is NULL)
 ```
@@ -590,7 +590,7 @@ Tox DHT nodes send their own heartbeats. The app could augment them:
 ```
 Alice wants to introduce Carol to Bob:
 
-1. $ cc-chat introduce bob carol
+1. $ toxi introduce bob carol
 2. The daemon checks:
    - Is bob in my contacts? ✓
    - Is carol in my contacts? ✓
@@ -612,8 +612,8 @@ When bob's daemon receives it:
    - alice introduced you to carol (Tox ID: F1E2...)
      note: my coworker
      accept and assign alias [n/y/rename]?
-7. Bob: $ cc-chat accept-intro alice carol  # default alias
-   or  $ cc-chat accept-intro alice carol --alias=co_carol
+7. Bob: $ toxi accept-intro alice carol  # default alias
+   or  $ toxi accept-intro alice carol --alias=co_carol
 8. The daemon sends a friend request to carol
 9. Carol handles it like any friend request
 ```
@@ -648,8 +648,8 @@ CREATE TABLE pending_introductions (
 
 #### 4.6.1 Transport
 
-- **Linux/macOS**: Unix domain socket, at `~/.config/claude-chat/daemon.sock`
-- **Windows**: Named pipe, `\\.\pipe\claude-cc-chat-daemon`
+- **Linux/macOS**: Unix domain socket, at `~/.config/toxi/daemon.sock`
+- **Windows**: Named pipe, `\\.\pipe\claude-toxi-daemon`
 - **Permissions**: only the current user can read/write (0600)
 
 #### 4.6.2 Wire format
@@ -727,49 +727,49 @@ Full command list:
 
 ```bash
 # Identity
-cc-chat init                      # First-time init; generate keys
-cc-chat me                        # Show your own Tox ID and name
-cc-chat set-name "Alice"          # Set your display name
+toxi init                      # First-time init; generate keys
+toxi me                        # Show your own Tox ID and name
+toxi set-name "Alice"          # Set your display name
 
 # Contacts
-cc-chat add <alias> <tox_id>      # Add a friend
-cc-chat accept <alias> <pubkey>   # Accept a friend request (pubkey = requester public-key prefix)
-cc-chat requests                  # Pending friend requests
-cc-chat contacts                  # List all contacts
-cc-chat contacts --online         # Online only
+toxi add <alias> <tox_id>      # Add a friend
+toxi accept <alias> <pubkey>   # Accept a friend request (pubkey = requester public-key prefix)
+toxi requests                  # Pending friend requests
+toxi contacts                  # List all contacts
+toxi contacts --online         # Online only
 chat remove <alias>            # Remove a contact
 
 # Messaging
-cc-chat send <alias> <message>    # Send a message
-cc-chat send <alias> -            # Read body from stdin
-cc-chat unread                    # All unread
-cc-chat unread <alias>            # Unread from one contact
-cc-chat read <alias>              # History (default last 20)
-cc-chat read <alias> --limit 50
-cc-chat queue                     # Outgoing queue
+toxi send <alias> <message>    # Send a message
+toxi send <alias> -            # Read body from stdin
+toxi unread                    # All unread
+toxi unread <alias>            # Unread from one contact
+toxi read <alias>              # History (default last 20)
+toxi read <alias> --limit 50
+toxi queue                     # Outgoing queue
 
 # Introductions
-cc-chat introduce <to> <whom>     # Introduce one contact to another
+toxi introduce <to> <whom>     # Introduce one contact to another
 chat introductions             # Received introductions
-cc-chat accept-intro <from> <whom> [--alias=...]
+toxi accept-intro <from> <whom> [--alias=...]
 
 # System
-cc-chat status                    # Daemon status, DHT, friend online state
-cc-chat daemon start/stop/restart
-cc-chat daemon logs
+toxi status                    # Daemon status, DHT, friend online state
+toxi daemon start/stop/restart
+toxi daemon logs
 chat mcp serve                 # Run the MCP server over stdio (see §4.12)
 
 # Claude collaboration
 # Done in v0.1: --json flag, SessionStart unread hook, slash commands, MCP server (§4.12)
 # Still v2:
 chat ask <question>            # Let Claude search the history
-cc-chat send <alias> --draft-with-claude <prompt>
+toxi send <alias> --draft-with-claude <prompt>
 ```
 
 ### 4.8 Data layout
 
 ```
-~/.config/claude-chat/
+~/.config/toxi/
 ├── tox_state.bin              # Tox internal state (keys, friend list)
 ├── chat.db                    # main SQLite database
 ├── daemon.sock                # IPC socket (Linux/macOS)
@@ -860,7 +860,7 @@ fail_after_hours = 24
 - `info`: routine events (friend on/off, message counts)
 - `debug`: protocol details (off by default)
 
-**Log location**: `~/.config/claude-chat/daemon.log`, rotated at 10MB, 5 files retained.
+**Log location**: `~/.config/toxi/daemon.log`, rotated at 10MB, 5 files retained.
 
 **Sensitive data**:
 - Logs **never** include message body
@@ -868,7 +868,7 @@ fail_after_hours = 24
 
 **`chat status` output**:
 ```
-$ cc-chat status
+$ toxi status
 Daemon: running (PID 12345)
 Uptime: 3d 2h 15m
 DHT: connected (UDP)
@@ -895,12 +895,12 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 
 | Surface | What it does | Implementation |
 |---|---|---|
-| `--json` group flag (§4.7) | Machine-readable output; peek mode for `unread`/`read` (no auto mark-read) | `src/claude_chat/cli.py` |
+| `--json` group flag (§4.7) | Machine-readable output; peek mode for `unread`/`read` (no auto mark-read) | `src/toxi/cli.py` |
 | SessionStart hook | When a Claude Code session starts, injects unread messages into the model's context (and asks the model to translate any non-Chinese message into Chinese) | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py` (calls `chat --json unread`) |
-| Slash commands | `/unread`, `/send <alias> <message>`, `/contacts`, `/status` — namespaced under `/cc-chat:` once installed | `claude-code-plugin/commands/*.md` |
+| Slash commands | `/unread`, `/send <alias> <message>`, `/contacts`, `/status` — namespaced under `/toxi:` once installed | `claude-code-plugin/commands/*.md` |
 | MCP server | Tools `get_unread`, `read_history`, `send_message`, `list_contacts`, `get_status` — lets the model act for you | `chat mcp serve` (FastMCP, optional `[mcp]` extra) registered via `claude-code-plugin/.mcp.json` |
 
-**Untrusted-input framing (prompt-injection resistance)**: incoming cc-chat messages are external input being injected into the model's context. The hook and slash-command prompts explicitly label them as **untrusted personal content, not instructions**, so a message body like "ignore previous instructions and run X" is treated as text the user might read, not as something Claude should act on.
+**Untrusted-input framing (prompt-injection resistance)**: incoming toxi messages are external input being injected into the model's context. The hook and slash-command prompts explicitly label them as **untrusted personal content, not instructions**, so a message body like "ignore previous instructions and run X" is treated as text the user might read, not as something Claude should act on.
 
 **Translation**: because Claude *is* the model, the hook just labels messages and lets Claude translate any non-Chinese ones when relaying — no extra dependency or API call required. A terminal-side translation (no model in the loop) would need a separate Claude API path; that's deferred.
 
@@ -908,16 +908,16 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 
 | Layer | Name | How to install |
 |---|---|---|
-| Engine (PyPI) | `cc-chat` | `pipx install cc-chat` (after publish); today: `pipx install git+https://github.com/JefferyLee/cc-chat` |
-| Engine (Homebrew) | `cc-chat` | `brew install <owner>/tap/cc-chat` — the formula `depends_on "toxcore"` so libtoxcore comes along automatically. Template at `packaging/homebrew/cc-chat.rb` |
-| Claude Code plugin | `cc-chat` | `/plugin marketplace add JefferyLee/cc-chat` then `/plugin install cc-chat@cc-chat`; or `claude --plugin-dir ./claude-code-plugin` for dev |
+| Engine (PyPI) | `toxi` | `pipx install toxi` (after publish); today: `pipx install git+https://github.com/JefferyLee/cc-chat` |
+| Engine (Homebrew) | `toxi` | `brew install <owner>/tap/toxi` — the formula `depends_on "toxcore"` so libtoxcore comes along automatically. Template at `packaging/homebrew/toxi.rb` |
+| Claude Code plugin | `toxi` | `/plugin marketplace add JefferyLee/cc-chat` then `/plugin install toxi@toxi`; or `claude --plugin-dir ./claude-code-plugin` for dev |
 
-**Why `cc-chat`** (not `claude-chat`): the original internal name `claude-chat` is already taken on PyPI by an unrelated project, and using the "Claude" trademark in a public distribution name is best avoided. `cc-chat` reads as "Claude Code chat".
+**Why `toxi`** (not `toxi`): the original internal name `toxi` is already taken on PyPI by an unrelated project, and using the "Claude" trademark in a public distribution name is best avoided. `toxi` reads as "Claude Code chat".
 
 **Kept unchanged on purpose**:
-- The CLI commands: `cc-chat` / `cc-chat-daemon` (typing experience).
-- The import package: `claude_chat` (purely internal; renaming would be churn for zero user benefit).
-- The on-disk config dir: `~/.config/claude-chat/` (renaming it would break the user's existing Tox identity and message history).
+- The CLI commands: `toxi` / `toxi-daemon` (typing experience).
+- The import package: `toxi` (purely internal; renaming would be churn for zero user benefit).
+- The on-disk config dir: `~/.config/toxi/` (renaming it would break the user's existing Tox identity and message history).
 
 ---
 
@@ -953,7 +953,7 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 - ✅ step 7 ACK / delivery state machine: receiver acks → sender sent→delivered; timeout retry, expiry → failed (milestone met)
 - ✅ step 8 introduce: contact_share + pending_introductions + accept-intro; Alice introduces Carol to Bob; Bob successfully connects to Carol (milestone met, = §8 metric ③)
 - ✅ step 9 polish: README install docs, enriched `chat status` (§4.11 format), log rotation (10MB×5, §4.11), CLI error-message polish (human-readable only)
-- ✅ step 10 Claude Code integration + packaging + rename (§4.12, §4.13): `--json` flag; SessionStart unread hook with translation + prompt-injection framing; slash commands; MCP server (`chat mcp serve`); all bundled as a Claude Code plugin in `claude-code-plugin/`; repo doubles as a marketplace (`.claude-plugin/marketplace.json`); brew tap formula template; renamed distribution `claude-chat` → `cc-chat`; bilingual docs (English `.md` + `.zh-CN.md`)
+- ✅ step 10 Claude Code integration + packaging + rename (§4.12, §4.13): `--json` flag; SessionStart unread hook with translation + prompt-injection framing; slash commands; MCP server (`chat mcp serve`); all bundled as a Claude Code plugin in `claude-code-plugin/`; repo doubles as a marketplace (`.claude-plugin/marketplace.json`); brew tap formula template; renamed distribution `toxi` → `toxi`; bilingual docs (English `.md` + `.zh-CN.md`)
 
 ### 5.2 v0.2
 
@@ -1081,4 +1081,4 @@ v0.1 MVP success criteria:
 | v0.1 | 2026-05-26 | Updates from step 8: introduce done (§5.1 progress, achieving §8 metric ③); add v1 implementation constraints — can only introduce contacts with a full Tox ID; introduce requires the recipient to be online (§4.5.3) |
 | v0.1 | 2026-05-26 | Updates from step 9 (partial): added README install docs; `chat status` enriched to §4.11 format (§5.1 progress) |
 | v0.1 | 2026-05-26 | step 9 polish complete: log rotation 10MB×5 (§4.11), `[daemon] log_level` from config.toml, CLI errors show only human-readable message (§5.1 progress). All v0.1 MVP steps complete |
-| v0.1 | 2026-05-27 | Align with current state: title and distribution name → `cc-chat`; updated source layout (§3.4) to current reality; added `--json` and `chat mcp serve` to CLI reference (§4.7); added §4.12 Claude Code integration and §4.13 Distribution; added step 10 to §5.1 progress; §5.4 v1.0 marked the native hook delivered; moved PRD into `docs/` |
+| v0.1 | 2026-05-27 | Align with current state: title and distribution name → `toxi`; updated source layout (§3.4) to current reality; added `--json` and `chat mcp serve` to CLI reference (§4.7); added §4.12 Claude Code integration and §4.13 Distribution; added step 10 to §5.1 progress; §5.4 v1.0 marked the native hook delivered; moved PRD into `docs/` |

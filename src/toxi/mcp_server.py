@@ -1,8 +1,8 @@
-"""MCP server exposing cc-chat to MCP clients (e.g. Claude Code).
+"""MCP server exposing toxi to MCP clients (e.g. Claude Code).
 
 Run with `chat mcp serve` (stdio transport). Needs the optional `mcp` extra:
 
-    pipx install 'cc-chat[mcp]'      # or: pip install '.[mcp]'
+    pipx install 'toxi[mcp]'      # or: pip install '.[mcp]'
 
 The tools talk to the running daemon over its Unix socket, so start it first
 with `chat daemon start`.
@@ -42,7 +42,7 @@ def build_server():
     """Build the FastMCP server (imports `mcp` lazily so it stays optional)."""
     from mcp.server.fastmcp import FastMCP
 
-    server = FastMCP("cc-chat")
+    server = FastMCP("toxi")
     for fn in TOOLS:
         server.tool()(fn)
     return server

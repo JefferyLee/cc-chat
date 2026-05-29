@@ -26,7 +26,7 @@ def request(method: str, params: dict | None = None, *, sock_path: Path | None =
     try:
         s.connect(sp)
     except (FileNotFoundError, ConnectionRefusedError) as e:
-        raise DaemonNotRunning("daemon is not running — start it with `cc-chat daemon start`") from e
+        raise DaemonNotRunning("daemon is not running — start it with `toxi daemon start`") from e
     try:
         ipc.send_message(s, {"id": "1", "method": method, "params": params or {}})
         resp = ipc.recv_message(s)

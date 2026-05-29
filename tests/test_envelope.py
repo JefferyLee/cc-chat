@@ -1,4 +1,4 @@
-from claude_chat import envelope
+from toxi import envelope
 
 
 def test_text_roundtrip():

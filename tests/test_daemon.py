@@ -12,9 +12,9 @@ import time
 
 import pytest
 
-from claude_chat import client, envelope
-from claude_chat.daemon import Daemon
-from claude_chat.tox import Tox
+from toxi import client, envelope
+from toxi.daemon import Daemon
+from toxi.tox import Tox
 
 
 def _foreign_tox_id() -> str:
@@ -31,7 +31,7 @@ def home(monkeypatch):
     # Short path under /tmp: macOS caps AF_UNIX socket paths at ~104 chars,
     # and pytest's tmp_path is too deep once "/daemon.sock" is appended.
     d = tempfile.mkdtemp(prefix="cc-", dir="/tmp")
-    monkeypatch.setenv("CLAUDE_CHAT_HOME", d)
+    monkeypatch.setenv("TOXI_HOME", d)
     yield d
     shutil.rmtree(d, ignore_errors=True)
 
@@ -304,7 +304,7 @@ def test_accept_intro_not_found_errors(home):
 
 def test_log_handler_rotates(home):
     """The daemon logs through a RotatingFileHandler (PRD §4.11: 10MB x 5)."""
-    import claude_chat.daemon as dmod
+    import toxi.daemon as dmod
     from logging.handlers import RotatingFileHandler
 
     d = Daemon()

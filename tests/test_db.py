@@ -1,6 +1,6 @@
 import time
 
-from claude_chat import db
+from toxi import db
 
 
 def test_schema_creates_tables(tmp_path):

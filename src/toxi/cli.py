@@ -1,4 +1,4 @@
-"""The `cc-chat` CLI (PRD §4.7). Short-lived: each command talks to the daemon over
+"""The `toxi` CLI (PRD §4.7). Short-lived: each command talks to the daemon over
 IPC and exits. Only `init` and `daemon start` touch the filesystem/process
 directly; everything else goes through the daemon.
 """
@@ -58,10 +58,10 @@ def init():
     sp.write_bytes(t.get_savedata())
     t.kill()
     click.echo(
-        f"Initialized cc-chat.\n"
+        f"Initialized toxi.\n"
         f"Your Tox ID: {address}\n\n"
         f"Share this ID with friends so they can add you.\n"
-        f"Next: start the daemon with `cc-chat daemon start`."
+        f"Next: start the daemon with `toxi daemon start`."
     )
 
 
@@ -125,7 +125,7 @@ def status(ctx):
 @click.argument("alias")
 @click.argument("tox_id")
 def add(alias, tox_id):
-    """Add a friend by their Tox ID: cc-chat add <alias> <tox_id>."""
+    """Add a friend by their Tox ID: toxi add <alias> <tox_id>."""
     _call("add_contact", {"alias": alias, "tox_id": tox_id})
     click.echo(f"Added {alias}. Friend request sent — waiting for them to accept.")
 
@@ -145,14 +145,14 @@ def requests(ctx):
         click.echo(f"  {r['public_key']}")
         if r["message"]:
             click.echo(f"    \"{r['message']}\"")
-    click.echo("\nAccept with: cc-chat accept <alias> <public-key-prefix>")
+    click.echo("\nAccept with: toxi accept <alias> <public-key-prefix>")
 
 
 @cli.command()
 @click.argument("alias")
 @click.argument("public_key")
 def accept(alias, public_key):
-    """Accept a friend request: cc-chat accept <alias> <public-key-prefix>."""
+    """Accept a friend request: toxi accept <alias> <public-key-prefix>."""
     _call("accept_request", {"alias": alias, "public_key": public_key})
     click.echo(f"Accepted. Added as '{alias}'.")
 
@@ -190,7 +190,7 @@ def _ago(ts: int) -> str:
 @click.argument("message")
 @click.pass_context
 def send(ctx, alias, message):
-    """Send a message: cc-chat send <alias> <message> (use - to read from stdin)."""
+    """Send a message: toxi send <alias> <message> (use - to read from stdin)."""
     if message == "-":
         message = sys.stdin.read().rstrip("\n")
     res = _call("send_message", {"alias": alias, "body": message})
@@ -209,10 +209,10 @@ def statusline():
         st = client.request("get_status")
         msgs = client.request("get_messages", {"unread_only": True, "limit": 100})["messages"]
     except client.DaemonNotRunning:
-        click.echo("cc-chat: offline")
+        click.echo("toxi: offline")
         return
     except client.DaemonError:
-        click.echo("cc-chat: error")
+        click.echo("toxi: error")
         return
 
     online = f"{st['contacts_online']}/{st['contacts_total']} online"
@@ -221,9 +221,9 @@ def statusline():
         for m in msgs:
             if m["alias"] not in senders:
                 senders.append(m["alias"])
-        click.echo(f"cc-chat: 📬 {len(msgs)} from {', '.join(senders)} · {online}")
+        click.echo(f"toxi: 📬 {len(msgs)} from {', '.join(senders)} · {online}")
     else:
-        click.echo(f"cc-chat: {online}")
+        click.echo(f"toxi: {online}")
 
 
 @cli.command()
@@ -284,7 +284,7 @@ def queue(ctx):
 @click.argument("whom")
 @click.option("--note", default="", help="A short note about who this is.")
 def introduce(to, whom, note):
-    """Share a contact's details: cc-chat introduce <to> <whom>."""
+    """Share a contact's details: toxi introduce <to> <whom>."""
     _call("introduce", {"to_alias": to, "contact_alias": whom, "note": note})
     click.echo(f"✓ Sent {whom}'s contact to {to}.")
 
@@ -305,7 +305,7 @@ def introductions(ctx):
                    f"(Tox ID: {i['introduced_tox_id'][:16]}...)")
         if i["note"]:
             click.echo(f"    note: {i['note']}")
-    click.echo("\nAccept with: cc-chat accept-intro <from> <whom> [--alias=...]")
+    click.echo("\nAccept with: toxi accept-intro <from> <whom> [--alias=...]")
 
 
 @cli.command(name="accept-intro")
@@ -313,7 +313,7 @@ def introductions(ctx):
 @click.argument("whom")
 @click.option("--alias", default=None, help="Local alias to give them (default: their suggested name).")
 def accept_intro(introducer, whom, alias):
-    """Accept an introduction: cc-chat accept-intro <from> <whom>."""
+    """Accept an introduction: toxi accept-intro <from> <whom>."""
     res = _call("accept_introduction",
                 {"from_alias": introducer, "whom": whom, "alias": alias})
     click.echo(f"Sending a friend request to '{res['alias']}'. They'll need to accept it.")
@@ -328,7 +328,7 @@ def _spawn_daemon(timeout: float = 10.0) -> int:
     """Spawn the daemon detached and poll until it answers. Returns the PID."""
     paths.ensure_config_dir()
     proc = subprocess.Popen(
-        [sys.executable, "-m", "claude_chat.daemon"],
+        [sys.executable, "-m", "toxi.daemon"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         start_new_session=True,
@@ -374,7 +374,7 @@ def mcp_serve():
         mcp_server.serve()
     except ImportError:
         raise click.ClickException(
-            "MCP support needs the extra: pipx install 'cc-chat[mcp]'"
+            "MCP support needs the extra: pipx install 'toxi[mcp]'"
         )
 
 
@@ -390,7 +390,7 @@ def setup():
         addr = t.self_get_address_hex()
         paths.tox_state_path().write_bytes(t.get_savedata())
         t.kill()
-        click.echo(f"✓ Generated identity (Tox ID: {addr[:16]}…). Run `cc-chat me` for the full ID.")
+        click.echo(f"✓ Generated identity (Tox ID: {addr[:16]}…). Run `toxi me` for the full ID.")
 
     # 2. Daemon
     if bootstrap.daemon_running():
@@ -409,14 +409,14 @@ def setup():
     else:  # left-custom
         click.echo(
             f"⚠ {sp} already has a custom statusLine — not touching it.\n"
-            f'  To enable cc-chat in the status bar, merge in: '
-            f'{{"statusLine":{{"type":"command","command":"cc-chat statusline"}}}}'
+            f'  To enable toxi in the status bar, merge in: '
+            f'{{"statusLine":{{"type":"command","command":"toxi statusline"}}}}'
         )
 
     # 4. Plugin install hint (Claude Code's plugin registry isn't safe to write from outside)
     click.echo("\nNext — install the Claude Code plugin (run inside Claude Code):")
     click.echo("  /plugin marketplace add JefferyLee/cc-chat")
-    click.echo("  /plugin install cc-chat")
+    click.echo("  /plugin install toxi")
 
 
 @cli.command()
@@ -457,8 +457,8 @@ def teardown(purge):
 
     # 4. Next steps
     click.echo("\nFinish removal:")
-    click.echo("  In Claude Code:  /plugin uninstall cc-chat@cc-chat")
-    click.echo("  In terminal:     pipx uninstall cc-chat")
+    click.echo("  In Claude Code:  /plugin uninstall toxi@toxi")
+    click.echo("  In terminal:     pipx uninstall toxi")
 
 
 def _pipx_lifecycle(pipx_args: list[str], label: str) -> None:
@@ -486,20 +486,20 @@ def _pipx_lifecycle(pipx_args: list[str], label: str) -> None:
         click.echo(f"✓ Daemon restarted (PID {pid}).")
 
     click.echo("\nIf the plugin shipped changes too, in Claude Code:")
-    click.echo("  /plugin uninstall cc-chat@cc-chat")
-    click.echo("  /plugin install cc-chat")
+    click.echo("  /plugin uninstall toxi@toxi")
+    click.echo("  /plugin install toxi")
 
 
 @cli.command()
 def upgrade():
     """Upgrade the engine via pipx — only fires when pyproject.toml version bumped."""
-    _pipx_lifecycle(["upgrade", "cc-chat"], "upgrade")
+    _pipx_lifecycle(["upgrade", "toxi"], "upgrade")
 
 
 @cli.command()
 def reinstall():
     """Force-reinstall the engine via pipx — ignores version, always re-fetches."""
-    _pipx_lifecycle(["reinstall", "cc-chat"], "reinstall")
+    _pipx_lifecycle(["reinstall", "toxi"], "reinstall")
 
 
 if __name__ == "__main__":

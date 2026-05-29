@@ -24,7 +24,7 @@ def _is_hex(s: str) -> bool:
     except ValueError:
         return False
 
-log = logging.getLogger("claude_chat.daemon")
+log = logging.getLogger("toxi.daemon")
 
 # A few long-lived public DHT nodes (PRD §4.8 will later move these to bootstrap.json).
 DEFAULT_BOOTSTRAP = [
@@ -380,7 +380,7 @@ class Daemon:
     def _add_contact(self, params: dict) -> dict:
         tox_id = params.get("tox_id", "").strip().upper()
         alias = params.get("alias", "").strip()
-        request_msg = params.get("request_msg") or "Let's chat on cc-chat"
+        request_msg = params.get("request_msg") or "Let's chat on toxi"
         if len(tox_id) != 76 or not _is_hex(tox_id):
             raise RpcError("INVALID_TOX_ID", "Tox ID must be 76 hex characters")
         if not alias:

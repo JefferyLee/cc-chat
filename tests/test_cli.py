@@ -8,14 +8,14 @@ import tempfile
 import pytest
 from click.testing import CliRunner
 
-from claude_chat import paths
-from claude_chat.cli import cli
+from toxi import paths
+from toxi.cli import cli
 
 
 @pytest.fixture
 def home(monkeypatch):
     d = tempfile.mkdtemp(prefix="cc-", dir="/tmp")  # short path for AF_UNIX
-    monkeypatch.setenv("CLAUDE_CHAT_HOME", d)
+    monkeypatch.setenv("TOXI_HOME", d)
     yield d
     shutil.rmtree(d, ignore_errors=True)
 

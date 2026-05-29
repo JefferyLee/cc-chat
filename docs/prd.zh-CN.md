@@ -1,4 +1,4 @@
-# cc-chat — Claude Code 命令行聊天插件 PRD
+# toxi — Claude Code 命令行聊天插件 PRD
 
 > 🌐 语言: [English](prd.md) | **中文**
 
@@ -48,14 +48,14 @@
 **场景 A：发送异步消息**
 ```
 Alice 正在写代码，想问 Bob 一个问题。
-$ cc-chat send bob "你看下我刚 push 的 PR，有空回我"
+$ toxi send bob "你看下我刚 push 的 PR，有空回我"
 ✓ 已发送
 （Alice 继续写代码，不等回复）
 ```
 
 **场景 B：查看未读消息**
 ```
-$ cc-chat unread
+$ toxi unread
 [3 条未读]
 1. bob (10 分钟前): 看了，建议改改 errorhandler 的命名
 2. carol (1 小时前): 周末爬山吗？
@@ -64,10 +64,10 @@ $ cc-chat unread
 
 **场景 C：对方离线时发消息**
 ```
-$ cc-chat send bob "晚安"
+$ toxi send bob "晚安"
 ✓ 对方当前离线，将在其上线后自动发送（已加入本地队列）
 
-$ cc-chat queue
+$ toxi queue
 [2 条待发]
 - bob: "晚安" (5 分钟前加入队列)
 - carol: "明早 9 点开会" (1 小时前加入队列)
@@ -77,12 +77,12 @@ $ cc-chat queue
 ```
 Bob 把他的 Tox ID 通过其他渠道（微信、邮件）告诉 Alice。
 
-$ cc-chat add bob 76518406F6A9F2217E8DC487...（76 字符 Tox ID）
+$ toxi add bob 76518406F6A9F2217E8DC487...（76 字符 Tox ID）
 ✓ 已添加 bob 到联系人。
   发送好友请求中... 等待对方接受。
 
 # Alice 自己的 Tox ID：
-$ cc-chat me
+$ toxi me
 你的 Tox ID: A1B2C3D4E5F6...
 （把这串发给朋友，他们就能添加你）
 ```
@@ -90,11 +90,11 @@ $ cc-chat me
 **场景 E：转发联系方式**
 ```
 Alice 想把 Carol 介绍给 Bob：
-$ cc-chat introduce bob carol
+$ toxi introduce bob carol
 ✓ 已向 bob 发送 carol 的联系方式
 
 # Bob 收到：
-$ cc-chat unread
+$ toxi unread
 [1 条联系方式邀请]
 - alice 给你介绍了 carol (Tox ID: F1E2D3...)
   接受 [y/n]?
@@ -105,7 +105,7 @@ $ cc-chat unread
 $ chat ask "bob 上次说 errorhandler 的事是怎么改的？"
 （Claude 在聊天历史里搜索并回答）
 
-$ cc-chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的话"
+$ toxi send bob --draft-with-claude "帮我写一段感谢他帮忙 review 的话"
 （Claude 起草，用户确认后发送）
 ```
 
@@ -130,7 +130,7 @@ $ cc-chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review �
 │                                                          │
 │  ┌─────────────────┐    ┌────────────────────────────┐   │
 │  │  Claude Code    │    │  CLI 命令                   │   │
-│  │  (聊天上下文)   │    │  $ cc-chat send / read / add  │   │
+│  │  (聊天上下文)   │    │  $ toxi send / read / add  │   │
 │  └────────┬────────┘    └─────────────┬──────────────┘   │
 │           │                            │                 │
 │           └────────────┬───────────────┘                 │
@@ -174,13 +174,13 @@ $ cc-chat send bob --draft-with-claude "帮我写一段感谢他帮忙 review �
 
 **两个进程**：
 
-1. **`cc-chat-daemon`**：常驻后台进程
+1. **`toxi-daemon`**：常驻后台进程
    - 启动方式：用户登录时通过 systemd / launchd / 任务计划程序启动
    - 持续运行 Tox 实例，维护 DHT 连接
    - 监听 IPC，处理 CLI 命令
    - 接收消息并写入 SQLite
 
-2. **`cc-chat`**：用户每次输入的 CLI 命令
+2. **`toxi`**：用户每次输入的 CLI 命令
    - 短生命周期：执行一次命令就退出
    - 通过 IPC 和 daemon 通信
    - 格式化输出到终端
@@ -217,8 +217,8 @@ tox-chat-plugin/                 （GitHub: JefferyLee/cc-chat）
 ├── pyproject.toml               # hatchling；依赖 click；extras [mcp] [dev]
 ├── README.md / README.zh-CN.md  # 双语用户文档
 ├── docs/                        # 双语设计文档（本 PRD 在此）
-├── src/claude_chat/             # 引擎（PyPI 发布名：cc-chat）
-│   ├── paths.py                 # 配置目录；CLAUDE_CHAT_HOME 覆盖供测试隔离
+├── src/toxi/             # 引擎（PyPI 发布名：toxi）
+│   ├── paths.py                 # 配置目录；TOXI_HOME 覆盖供测试隔离
 │   ├── db.py                    # SQLite schema（§4.1、§4.2、§4.5）+ 幂等 connect()
 │   ├── ipc.py                   # 长度前缀 JSON 帧编解码（§4.6.2）
 │   ├── client.py                # 极简 IPC 客户端（CLI 与测试共用）
@@ -236,14 +236,14 @@ tox-chat-plugin/                 （GitHub: JefferyLee/cc-chat）
 │   ├── hooks/unread_hook.py
 │   └── .mcp.json                # 注册 chat mcp serve
 ├── .claude-plugin/marketplace.json  # 本仓库本身就是 marketplace
-└── packaging/homebrew/cc-chat.rb    # tap formula 模板（§4.13）
+└── packaging/homebrew/toxi.rb    # tap formula 模板（§4.13）
 ```
 
 约定：
 - **daemon 是 SQLite 的唯一写者**；CLI 一律经 IPC 访问数据，不直接开库。
 - `tox.py` 不依赖任何 PyPI Tox 包，运行时只需系统已装 libtoxcore。
 - **代码（除 `docs/` 外的所有内容）全英文**；**文档双语**（英文文件为正本，`<name>.zh-CN.md` 为中文版，顶部互链）。
-- **发布名 `cc-chat`**；Python 内部包名仍为 `claude_chat`，磁盘配置目录仍为 `~/.config/claude-chat/`（详见 §4.13）。
+- **发布名 `toxi`**；Python 内部包名仍为 `toxi`，磁盘配置目录仍为 `~/.config/toxi/`（详见 §4.13）。
 
 ---
 
@@ -263,7 +263,7 @@ tox-chat-plugin/                 （GitHub: JefferyLee/cc-chat）
 
 **身份持久化**：
 - 第一次启动 daemon 时生成密钥对
-- 保存在 `~/.config/claude-chat/tox_state.bin`（默认无密码，可选加密）
+- 保存在 `~/.config/toxi/tox_state.bin`（默认无密码，可选加密）
 - 用户可以通过 `chat me` 查看自己的 Tox ID 分享给朋友
 
 #### 4.1.2 联系人模型
@@ -309,12 +309,12 @@ CREATE TABLE friend_requests (
 Alice 添加 Bob：
 
 1. Alice 获得 Bob 的 Tox ID（线下、邮件、微信等任意渠道）
-2. $ cc-chat add bob <bob_tox_id>
+2. $ toxi add bob <bob_tox_id>
 3. daemon 调用 tox_friend_add()，发送好友请求（可附带文字）
 4. 请求通过 DHT 到达 Bob 的 daemon
-5. Bob 看到请求：$ cc-chat requests
+5. Bob 看到请求：$ toxi requests
    - 公钥 A1B2...（64 字符）: "嗨我是 alice 加个好友"
-6. Bob 接受并起别名：$ cc-chat accept alice <公钥前缀>
+6. Bob 接受并起别名：$ toxi accept alice <公钥前缀>
    daemon 用请求里的公钥调 tox_friend_add_norequest()
 7. 双方都在联系人列表里出现对方（Bob 这边 alice 的 tox_id 为 NULL）
 ```
@@ -588,7 +588,7 @@ Tox DHT 节点会自动发心跳保活。但应用层也可以增强：
 ```
 Alice 想把 Carol 介绍给 Bob：
 
-1. $ cc-chat introduce bob carol
+1. $ toxi introduce bob carol
 2. daemon 检查：
    - bob 在我的联系人？✓
    - carol 在我的联系人？✓
@@ -610,8 +610,8 @@ Bob 的 daemon 收到后：
    - alice 给你介绍了 carol (Tox ID: F1E2...)
      备注: 我同事
      接受并起别名 [n/y/rename]?
-7. Bob: $ cc-chat accept-intro alice carol  # 用默认 alias
-   或 $ cc-chat accept-intro alice carol --alias=co_carol
+7. Bob: $ toxi accept-intro alice carol  # 用默认 alias
+   或 $ toxi accept-intro alice carol --alias=co_carol
 8. daemon 发好友请求给 carol
 9. Carol 那边像普通好友请求一样处理
 ```
@@ -646,8 +646,8 @@ CREATE TABLE pending_introductions (
 
 #### 4.6.1 传输
 
-- **Linux/macOS**：Unix domain socket，路径 `~/.config/claude-chat/daemon.sock`
-- **Windows**：Named pipe，`\\.\pipe\claude-cc-chat-daemon`
+- **Linux/macOS**：Unix domain socket，路径 `~/.config/toxi/daemon.sock`
+- **Windows**：Named pipe，`\\.\pipe\claude-toxi-daemon`
 - **权限**：仅当前用户可读写（0600）
 
 #### 4.6.2 消息格式
@@ -725,49 +725,49 @@ v2 可加 server-sent events，让 CLI 工具订阅消息流。
 
 ```bash
 # 身份相关
-cc-chat init                      # 首次初始化，生成密钥
-cc-chat me                        # 显示自己的 Tox ID 和名字
-cc-chat set-name "Alice"          # 设置展示名
+toxi init                      # 首次初始化，生成密钥
+toxi me                        # 显示自己的 Tox ID 和名字
+toxi set-name "Alice"          # 设置展示名
 
 # 联系人管理
-cc-chat add <alias> <tox_id>      # 添加好友
-cc-chat accept <alias> <pubkey>   # 接受好友请求（pubkey 为请求方公钥前缀）
-cc-chat requests                  # 查看待处理的好友请求
-cc-chat contacts                  # 列出所有联系人
-cc-chat contacts --online         # 仅在线的
+toxi add <alias> <tox_id>      # 添加好友
+toxi accept <alias> <pubkey>   # 接受好友请求（pubkey 为请求方公钥前缀）
+toxi requests                  # 查看待处理的好友请求
+toxi contacts                  # 列出所有联系人
+toxi contacts --online         # 仅在线的
 chat remove <alias>            # 删除联系人
 
 # 消息收发
-cc-chat send <alias> <message>    # 发消息
-cc-chat send <alias> -            # 从 stdin 读
-cc-chat unread                    # 显示所有未读
-cc-chat unread <alias>            # 某人的未读
-cc-chat read <alias>              # 看历史（默认最近 20 条）
-cc-chat read <alias> --limit 50
-cc-chat queue                     # 待发队列
+toxi send <alias> <message>    # 发消息
+toxi send <alias> -            # 从 stdin 读
+toxi unread                    # 显示所有未读
+toxi unread <alias>            # 某人的未读
+toxi read <alias>              # 看历史（默认最近 20 条）
+toxi read <alias> --limit 50
+toxi queue                     # 待发队列
 
 # 联系方式转发
-cc-chat introduce <to> <whom>     # 介绍朋友
+toxi introduce <to> <whom>     # 介绍朋友
 chat introductions             # 收到的介绍
-cc-chat accept-intro <from> <whom> [--alias=...]
+toxi accept-intro <from> <whom> [--alias=...]
 
 # 系统
-cc-chat status                    # 显示 daemon 状态、DHT 连接、好友在线情况
-cc-chat daemon start/stop/restart
-cc-chat daemon logs
+toxi status                    # 显示 daemon 状态、DHT 连接、好友在线情况
+toxi daemon start/stop/restart
+toxi daemon logs
 chat mcp serve                 # 通过 stdio 跑 MCP server（见 §4.12）
 
 # Claude 协同
 # v0.1 已完成：--json 开关、SessionStart 未读 hook、slash 命令、MCP server（§4.12）
 # 仍在 v2：
 chat ask <question>            # 让 Claude 在历史里搜
-cc-chat send <alias> --draft-with-claude <prompt>
+toxi send <alias> --draft-with-claude <prompt>
 ```
 
 ### 4.8 数据存储布局
 
 ```
-~/.config/claude-chat/
+~/.config/toxi/
 ├── tox_state.bin              # Tox 内部状态（密钥、好友列表）
 ├── chat.db                    # SQLite 主数据库
 ├── daemon.sock                # IPC socket（Linux/macOS）
@@ -858,7 +858,7 @@ fail_after_hours = 24
 - `info`：常规事件（朋友上下线、消息收发数量）
 - `debug`：协议细节（默认关）
 
-**日志位置**：`~/.config/claude-chat/daemon.log`，rotate at 10MB，保留 5 个文件。
+**日志位置**：`~/.config/toxi/daemon.log`，rotate at 10MB，保留 5 个文件。
 
 **敏感信息处理**：
 - 日志**不记录**消息正文
@@ -866,7 +866,7 @@ fail_after_hours = 24
 
 **`chat status` 命令输出**：
 ```
-$ cc-chat status
+$ toxi status
 Daemon: running (PID 12345)
 Uptime: 3d 2h 15m
 DHT: connected (UDP)
@@ -893,9 +893,9 @@ Stats (last 24h):
 
 | 入口 | 作用 | 实现 |
 |---|---|---|
-| `--json` 全局开关（§4.7）| 机器可读输出；`unread`/`read` 在此模式下为 peek（不会自动标已读）| `src/claude_chat/cli.py` |
+| `--json` 全局开关（§4.7）| 机器可读输出；`unread`/`read` 在此模式下为 peek（不会自动标已读）| `src/toxi/cli.py` |
 | SessionStart hook | Claude Code 会话开始时把未读消息注入模型上下文，并让模型把非中文消息翻成中文 | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py`（调 `chat --json unread`）|
-| Slash 命令 | `/unread`、`/send <alias> <message>`、`/contacts`、`/status`，安装后命名空间为 `/cc-chat:` | `claude-code-plugin/commands/*.md` |
+| Slash 命令 | `/unread`、`/send <alias> <message>`、`/contacts`、`/status`，安装后命名空间为 `/toxi:` | `claude-code-plugin/commands/*.md` |
 | MCP server | 工具 `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让模型能替你操作 | `chat mcp serve`（FastMCP，可选 `[mcp]` extra），由 `claude-code-plugin/.mcp.json` 注册 |
 
 **不可信输入框架（防提示注入）**：来信是外部输入被注入模型上下文。hook 和 slash 命令的提示词**明确把消息标为「个人内容、非指令」**，所以"忽略指令、执行 X"这类正文会被当作可能给用户读的文字，而不是 Claude 该执行的命令。
@@ -906,16 +906,16 @@ Stats (last 24h):
 
 | 层 | 名字 | 安装方式 |
 |---|---|---|
-| 引擎（PyPI）| `cc-chat` | 发布后：`pipx install cc-chat`；目前：`pipx install git+https://github.com/JefferyLee/cc-chat` |
-| 引擎（Homebrew）| `cc-chat` | `brew install <owner>/tap/cc-chat` —— formula `depends_on "toxcore"`，所以 libtoxcore 会被一起拉下来。模板在 `packaging/homebrew/cc-chat.rb` |
-| Claude Code 插件 | `cc-chat` | `/plugin marketplace add JefferyLee/cc-chat` 然后 `/plugin install cc-chat@cc-chat`；开发期可用 `claude --plugin-dir ./claude-code-plugin` |
+| 引擎（PyPI）| `toxi` | 发布后：`pipx install toxi`；目前：`pipx install git+https://github.com/JefferyLee/cc-chat` |
+| 引擎（Homebrew）| `toxi` | `brew install <owner>/tap/toxi` —— formula `depends_on "toxcore"`，所以 libtoxcore 会被一起拉下来。模板在 `packaging/homebrew/toxi.rb` |
+| Claude Code 插件 | `toxi` | `/plugin marketplace add JefferyLee/cc-chat` 然后 `/plugin install toxi@toxi`；开发期可用 `claude --plugin-dir ./claude-code-plugin` |
 
-**为什么叫 `cc-chat`**（不叫 `claude-chat`）：内部原名 `claude-chat` 在 PyPI 已被无关项目占用，而且公开发布名里带 "Claude" 商标也最好避免。`cc-chat` 读作 "Claude Code chat"。
+**为什么叫 `toxi`**（不叫 `toxi`）：内部原名 `toxi` 在 PyPI 已被无关项目占用，而且公开发布名里带 "Claude" 商标也最好避免。`toxi` 读作 "Claude Code chat"。
 
 **有意保留不动的**：
-- CLI 命令 `cc-chat` / `cc-chat-daemon`（输入体验）。
-- 内部包名 `claude_chat`（纯内部；改它工作量大、用户无感知）。
-- 磁盘配置目录 `~/.config/claude-chat/`（改它会丢用户现有的 Tox 身份与消息历史）。
+- CLI 命令 `toxi` / `toxi-daemon`（输入体验）。
+- 内部包名 `toxi`（纯内部；改它工作量大、用户无感知）。
+- 磁盘配置目录 `~/.config/toxi/`（改它会丢用户现有的 Tox 身份与消息历史）。
 
 ---
 
@@ -951,7 +951,7 @@ Stats (last 24h):
 - ✅ step 7 ACK / 送达状态机：接收方回 ack→发送方 sent→delivered；超时重发、超期 failed（里程碑达成）
 - ✅ step 8 introduce：contact_share + pending_introductions + accept-intro；Alice 介绍 Carol 给 Bob，Bob 成功连上 Carol（里程碑达成，= §8 指标③）
 - ✅ step 9 收尾：README 安装文档、丰富的 `chat status`（§4.11 格式）、日志轮转（10MB×5，§4.11）、CLI 错误信息打磨（只显示人类可读消息）
-- ✅ step 10 Claude Code 集成 + 打包 + 改名（§4.12、§4.13）：`--json` 开关；SessionStart 未读 hook（含翻译 + 防提示注入框架）；slash 命令；MCP server（`chat mcp serve`）；全部打包为 `claude-code-plugin/` 下的 Claude Code 插件；仓库本身就是 marketplace（`.claude-plugin/marketplace.json`）；brew tap formula 模板；发布名 `claude-chat` → `cc-chat`；文档双语化（英文 `.md` + `.zh-CN.md`）
+- ✅ step 10 Claude Code 集成 + 打包 + 改名（§4.12、§4.13）：`--json` 开关；SessionStart 未读 hook（含翻译 + 防提示注入框架）；slash 命令；MCP server（`chat mcp serve`）；全部打包为 `claude-code-plugin/` 下的 Claude Code 插件；仓库本身就是 marketplace（`.claude-plugin/marketplace.json`）；brew tap formula 模板；发布名 `toxi` → `toxi`；文档双语化（英文 `.md` + `.zh-CN.md`）
 
 ### 5.2 v0.2
 
@@ -1079,4 +1079,4 @@ v0.1 MVP 的成功标准：
 | v0.1 | 2026-05-26 | 按 step 8 结果更新：introduce 完成（§5.1 进度，达成 §8 指标③）；补 v1 实现约束——只能转介有完整 Tox ID 的联系人、introduce 要求接收方在线（§4.5.3）|
 | v0.1 | 2026-05-26 | 按 step 9（部分）更新：新增 README 安装文档；`chat status` 丰富为 §4.11 格式（§5.1 进度）|
 | v0.1 | 2026-05-26 | step 9 收尾完成：日志轮转 10MB×5（§4.11）、config.toml 支持 `[daemon] log_level`、CLI 错误只显示人类可读消息（§5.1 进度）。v0.1 MVP 全部步骤完成 |
-| v0.1 | 2026-05-27 | 与当前现状对齐：标题与发布名 → `cc-chat`；§3.4 源码结构更新为当前实情；§4.7 CLI 加入 `--json` 与 `chat mcp serve`；新增 §4.12 Claude Code 集成、§4.13 发布与命名；§5.1 进度补 step 10；§5.4 v1.0 标记原生 hook 已交付；PRD 迁入 `docs/` |
+| v0.1 | 2026-05-27 | 与当前现状对齐：标题与发布名 → `toxi`；§3.4 源码结构更新为当前实情；§4.7 CLI 加入 `--json` 与 `chat mcp serve`；新增 §4.12 Claude Code 集成、§4.13 发布与命名；§5.1 进度补 step 10；§5.4 v1.0 标记原生 hook 已交付；PRD 迁入 `docs/` |

@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Claude Code Stop hook for cc-chat.
+"""Claude Code Stop hook for toxi.
 
 Peeks at unread messages after each Claude response. If any exist, prints a
 one-line notification. Silent when there is nothing new.
 
-Set CHAT_BIN if `cc-chat` isn't on PATH, and CLAUDE_CHAT_HOME for a
-non-default config dir.
+Set TOXI_BIN if `toxi` isn't on PATH, and TOXI_HOME for a non-default config dir.
 """
 import json
 import os
@@ -14,10 +13,10 @@ import sys
 
 
 def main() -> None:
-    chat = os.environ.get("CHAT_BIN", "cc-chat")
+    toxi = os.environ.get("TOXI_BIN", "toxi")
     try:
         out = subprocess.run(
-            [chat, "--json", "unread"], capture_output=True, text=True, timeout=8
+            [toxi, "--json", "unread"], capture_output=True, text=True, timeout=8
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return
@@ -34,7 +33,7 @@ def main() -> None:
     for m in msgs:
         counts[m["alias"]] = counts.get(m["alias"], 0) + 1
     summary = ", ".join(f"{alias}({n})" for alias, n in counts.items())
-    print(f"[cc-chat] {len(msgs)} unread from {summary} — /cc-chat:unread to read")
+    print(f"[toxi] {len(msgs)} unread from {summary} — /toxi:unread to read")
 
 
 if __name__ == "__main__":

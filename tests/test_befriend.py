@@ -1,7 +1,7 @@
 """Milestone (step 4): two independent daemons befriend each other over the real
 Tox DHT. Marked `dht` (slow, network-bound) — run with `pytest -m dht`.
 
-Two daemons can't share one process (CLAUDE_CHAT_HOME is a single env var), so we
+Two daemons can't share one process (TOXI_HOME is a single env var), so we
 run each as its own subprocess with its own home and talk to each by socket path.
 """
 import os
@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from claude_chat import client
+from toxi import client
 
 
 def _sock(home: str) -> Path:
@@ -26,9 +26,9 @@ def _req(home: str, method: str, params: dict | None = None):
 
 
 def _start(home: str) -> subprocess.Popen:
-    env = dict(os.environ, CLAUDE_CHAT_HOME=home)
+    env = dict(os.environ, TOXI_HOME=home)
     p = subprocess.Popen(
-        [sys.executable, "-m", "claude_chat.daemon"],
+        [sys.executable, "-m", "toxi.daemon"],
         env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     deadline = time.time() + 10

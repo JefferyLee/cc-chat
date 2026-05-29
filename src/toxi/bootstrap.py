@@ -1,4 +1,4 @@
-"""Helpers for `cc-chat setup` / `teardown` / `upgrade`.
+"""Helpers for `toxi setup` / `teardown` / `upgrade`.
 
 Pure helpers — no Click, no side effects on import. Filesystem touchers return
 small status strings so the CLI can phrase its own output.
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from . import client, paths
 
-STATUSLINE_CMD = "cc-chat statusline"
+STATUSLINE_CMD = "toxi statusline"
 
 
 def claude_settings_path() -> Path:
@@ -36,7 +36,7 @@ def _write_settings(p: Path, data: dict) -> None:
 
 
 def ensure_statusline() -> str:
-    """Wire cc-chat into ~/.claude/settings.json.
+    """Wire toxi into ~/.claude/settings.json.
 
     Returns: "added" | "kept" | "left-custom".
     """

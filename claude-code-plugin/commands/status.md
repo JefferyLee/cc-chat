@@ -1,11 +1,11 @@
 ---
-description: Show cc-chat daemon status, connection, contacts and queue
-allowed-tools: Bash(cc-chat *)
+description: Show toxi daemon status, connection, contacts and queue
+allowed-tools: Bash(toxi *)
 ---
 
-cc-chat status:
+toxi status:
 
-!`cc-chat status`
+!`toxi status`
 
 If anything looks off (daemon down, DHT not connected, messages stuck in the
 queue), point it out.

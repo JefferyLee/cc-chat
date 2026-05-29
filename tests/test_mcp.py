@@ -6,7 +6,7 @@ FastMCP build is checked only if the optional `mcp` extra is installed.
 """
 import pytest
 
-from claude_chat import mcp_server
+from toxi import mcp_server
 
 
 def test_tools_call_expected_rpcs(monkeypatch):

@@ -1,20 +1,20 @@
-"""Filesystem layout for claude-chat (see PRD §4.8).
+"""Filesystem layout for toxi (see PRD §4.8).
 
-The config dir defaults to ~/.config/claude-chat/ but can be overridden with the
-CLAUDE_CHAT_HOME env var — this is what lets us run two independent daemons on
+The config dir defaults to ~/.config/toxi/ but can be overridden with the
+TOXI_HOME env var — this is what lets us run two independent daemons on
 one machine for testing.
 """
 import os
 from pathlib import Path
 
-ENV_HOME = "CLAUDE_CHAT_HOME"
+ENV_HOME = "TOXI_HOME"
 
 
 def config_dir() -> Path:
     override = os.environ.get(ENV_HOME)
     if override:
         return Path(override)
-    return Path.home() / ".config" / "claude-chat"
+    return Path.home() / ".config" / "toxi"
 
 
 def ensure_config_dir() -> Path:

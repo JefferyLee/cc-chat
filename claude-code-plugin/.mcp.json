@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "cc-chat": {
+    "toxi": {
       "type": "stdio",
-      "command": "cc-chat",
+      "command": "toxi",
       "args": ["mcp", "serve"]
     }
   }

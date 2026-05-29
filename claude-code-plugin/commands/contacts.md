@@ -1,10 +1,10 @@
 ---
-description: List your cc-chat contacts and who is online
-allowed-tools: Bash(cc-chat *)
+description: List your toxi contacts and who is online
+allowed-tools: Bash(toxi *)
 ---
 
-Your cc-chat contacts:
+Your toxi contacts:
 
-!`cc-chat contacts`
+!`toxi contacts`
 
 Summarize for me who is online right now.

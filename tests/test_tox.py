@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from claude_chat.tox import Tox, ADDRESS_SIZE
+from toxi.tox import Tox, ADDRESS_SIZE
 
 
 def test_construct_and_address():

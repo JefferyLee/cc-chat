@@ -1,25 +1,25 @@
-# Homebrew formula TEMPLATE for the cc-chat engine.
+# Homebrew formula TEMPLATE for the toxi engine.
 #
 # This is a starting point, not a finished formula. To produce a real one:
 #
 #   1. Publish the package to PyPI (or push a release tarball to GitHub).
 #   2. Generate a formula skeleton from that URL:
-#        brew create --python https://files.pythonhosted.org/.../<NAME>-0.1.0.tar.gz
+#        brew create --python https://files.pythonhosted.org/.../toxi-0.2.0.tar.gz
 #   3. Fill in the Python dependency `resource` blocks automatically:
-#        brew update-python-resources Formula/cc-chat.rb
+#        brew update-python-resources Formula/toxi.rb
 #   4. Host it in a personal tap repo `homebrew-<tap>` so users can:
 #        brew tap <owner>/<tap>
-#        brew install cc-chat
+#        brew install toxi
 #
 # The key win: `depends_on "toxcore"` means `brew install` pulls libtoxcore in
 # automatically — the one native dependency the engine needs at runtime.
 
-class CcChat < Formula
+class Toxi < Formula
   include Language::Python::Virtualenv
 
-  desc "Decentralized, encrypted, asynchronous CLI chat over the Tox protocol"
+  desc "Decentralized messaging for AI coding agents, over Tox"
   homepage "https://github.com/JefferyLee/cc-chat"
-  url "https://files.pythonhosted.org/packages/source/.../NAME-0.1.0.tar.gz" # TODO
+  url "https://files.pythonhosted.org/packages/source/.../toxi-0.2.0.tar.gz" # TODO
   sha256 "TODO_FILL_IN_AFTER_RELEASE"
   license "TODO" # choose and add a LICENSE file
 
@@ -38,6 +38,6 @@ class CcChat < Formula
   end
 
   test do
-    assert_match "Usage", shell_output("#{bin}/chat --help")
+    assert_match "Usage", shell_output("#{bin}/toxi --help")
   end
 end
