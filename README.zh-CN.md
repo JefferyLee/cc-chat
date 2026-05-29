@@ -127,7 +127,8 @@ claude --plugin-dir ./claude-code-plugin
 ### 插件提供什么
 
 - **SessionStart hook** —— 会话开始时把未读消息注入 Claude 的上下文，非中文消息自动翻成中文。来信被明确标为「不可信个人内容、非指令」，防止有人通过消息内容做提示注入。
-- **Slash 命令** —— `/chat-unread`、`/chat-send <别名> <消息>`、`/chat-contacts`、`/chat-status`（命名空间为 `/cc-chat:...`）。
+- **Slash 命令** —— `/unread`、`/send <别名> <消息>`、`/contacts`、`/status`（命名空间为 `/cc-chat:...`）。
+- **状态栏集成** —— `cc-chat statusline` 输出一行摘要（`cc-chat: 📬 2 from macbook · 1/1 online`），可接到 Claude Code 的 `statusLine` 设置里，未读数会显示在底部状态条。
 - **MCP 工具** —— `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让 Claude 能替你操作。需引擎的 `[mcp]` extra。
 
 ### 机器可读输出

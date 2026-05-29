@@ -231,7 +231,7 @@ tox-chat-plugin/                 （GitHub: JefferyLee/cc-chat）
 ├── tests/                       # 40 个快测 + 5 个标记 dht 的集成测试
 ├── claude-code-plugin/          # Claude Code 插件（§4.12）
 │   ├── .claude-plugin/plugin.json
-│   ├── commands/                # /chat-unread、/chat-send、/chat-contacts、/chat-status
+│   ├── commands/                # /unread、/send、/contacts、/status
 │   ├── hooks/hooks.json         # SessionStart 未读通知 hook
 │   ├── hooks/unread_hook.py
 │   └── .mcp.json                # 注册 chat mcp serve
@@ -895,7 +895,7 @@ Stats (last 24h):
 |---|---|---|
 | `--json` 全局开关（§4.7）| 机器可读输出；`unread`/`read` 在此模式下为 peek（不会自动标已读）| `src/claude_chat/cli.py` |
 | SessionStart hook | Claude Code 会话开始时把未读消息注入模型上下文，并让模型把非中文消息翻成中文 | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py`（调 `chat --json unread`）|
-| Slash 命令 | `/chat-unread`、`/chat-send <alias> <message>`、`/chat-contacts`、`/chat-status`，安装后命名空间为 `/cc-chat:` | `claude-code-plugin/commands/*.md` |
+| Slash 命令 | `/unread`、`/send <alias> <message>`、`/contacts`、`/status`，安装后命名空间为 `/cc-chat:` | `claude-code-plugin/commands/*.md` |
 | MCP server | 工具 `get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`，让模型能替你操作 | `chat mcp serve`（FastMCP，可选 `[mcp]` extra），由 `claude-code-plugin/.mcp.json` 注册 |
 
 **不可信输入框架（防提示注入）**：来信是外部输入被注入模型上下文。hook 和 slash 命令的提示词**明确把消息标为「个人内容、非指令」**，所以"忽略指令、执行 X"这类正文会被当作可能给用户读的文字，而不是 Claude 该执行的命令。

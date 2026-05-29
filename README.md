@@ -143,8 +143,11 @@ claude --plugin-dir ./claude-code-plugin
   when a session starts, translating any non-Chinese message. Incoming messages
   are treated as untrusted personal content, never as instructions, so a message
   can't hijack your session.
-- **Slash commands** — `/chat-unread`, `/chat-send <alias> <message>`,
-  `/chat-contacts`, `/chat-status` (namespaced as `/cc-chat:...`).
+- **Slash commands** — `/unread`, `/send <alias> <message>`,
+  `/contacts`, `/status` (namespaced as `/cc-chat:...`).
+- **Status-line integration** — `cc-chat statusline` prints a one-line summary
+  (`cc-chat: 📬 2 from macbook · 1/1 online`) you can wire into Claude Code's
+  `statusLine` setting to see unread counts in the bottom bar.
 - **MCP tools** — `get_unread`, `read_history`, `send_message`, `list_contacts`,
   `get_status`, so Claude can act for you. Needs the engine's `[mcp]` extra.
 

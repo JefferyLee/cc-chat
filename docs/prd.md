@@ -231,7 +231,7 @@ tox-chat-plugin/                 (GitHub: JefferyLee/cc-chat)
 ├── tests/                       # 40 fast + 5 DHT-marked integration tests
 ├── claude-code-plugin/          # the Claude Code plugin (§4.12)
 │   ├── .claude-plugin/plugin.json
-│   ├── commands/                # /chat-unread, /chat-send, /chat-contacts, /chat-status
+│   ├── commands/                # /unread, /send, /contacts, /status
 │   ├── hooks/hooks.json         # SessionStart unread-notification hook
 │   ├── hooks/unread_hook.py
 │   └── .mcp.json                # registers `chat mcp serve`
@@ -897,7 +897,7 @@ Originally listed for v1.0; the foundation shipped with v0.1. The engine is inde
 |---|---|---|
 | `--json` group flag (§4.7) | Machine-readable output; peek mode for `unread`/`read` (no auto mark-read) | `src/claude_chat/cli.py` |
 | SessionStart hook | When a Claude Code session starts, injects unread messages into the model's context (and asks the model to translate any non-Chinese message into Chinese) | `claude-code-plugin/hooks/hooks.json` → `hooks/unread_hook.py` (calls `chat --json unread`) |
-| Slash commands | `/chat-unread`, `/chat-send <alias> <message>`, `/chat-contacts`, `/chat-status` — namespaced under `/cc-chat:` once installed | `claude-code-plugin/commands/*.md` |
+| Slash commands | `/unread`, `/send <alias> <message>`, `/contacts`, `/status` — namespaced under `/cc-chat:` once installed | `claude-code-plugin/commands/*.md` |
 | MCP server | Tools `get_unread`, `read_history`, `send_message`, `list_contacts`, `get_status` — lets the model act for you | `chat mcp serve` (FastMCP, optional `[mcp]` extra) registered via `claude-code-plugin/.mcp.json` |
 
 **Untrusted-input framing (prompt-injection resistance)**: incoming cc-chat messages are external input being injected into the model's context. The hook and slash-command prompts explicitly label them as **untrusted personal content, not instructions**, so a message body like "ignore previous instructions and run X" is treated as text the user might read, not as something Claude should act on.

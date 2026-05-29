@@ -25,21 +25,19 @@ cc-chat 分**两部分**，分别安装：
 ### 2.1 macOS
 
 ```bash
-# 1) 装 libtoxcore（唯一的原生依赖）
-brew install toxcore
-
-# 2) 准备 pipx
-brew install pipx
+# 1) 装 libtoxcore（唯一的原生依赖）和 pipx
+brew install toxcore pipx
 pipx ensurepath          # 然后重开终端，确保 `cc-chat` 在 PATH 上
 
-# 3) 从 GitHub 安装 cc-chat
-pipx install git+https://github.com/JefferyLee/cc-chat
+# 2) 装 cc-chat（带 MCP extra）
+pipx install 'git+https://github.com/JefferyLee/cc-chat#egg=cc-chat[mcp]'
 
-# 4)（可选）给 Claude Code 装上 MCP 工具支持：
-pipx install --force 'git+https://github.com/JefferyLee/cc-chat#egg=cc-chat[mcp]'
+# 3) 一键 setup：生成身份、启动 daemon、把底部状态栏指示器写进
+#    ~/.claude/settings.json（会留 .bak 备份）。可反复运行。
+cc-chat setup
 ```
 
-PyPI 发布以后这一步会简化为 `pipx install cc-chat`（带 extra 是 `'cc-chat[mcp]'`）。Homebrew tap 发布以后可以 `brew install <owner>/tap/cc-chat`，会自动把 libtoxcore 一起拉下来。
+PyPI 发布以后第 2 步简化为 `pipx install 'cc-chat[mcp]'`。Homebrew tap 发布以后第 1–3 步会合并成单条 `brew install`。
 
 ### 2.2 Linux（预期支持，尚未正式测试）
 
@@ -50,15 +48,16 @@ PyPI 发布以后这一步会简化为 `pipx install cc-chat`（带 extra 是 `'
 #      Fedora:        sudo dnf install toxcore
 sudo apt install libtoxcore2 python3-pip pipx       # 按你的发行版调整
 
-# 2) 与 macOS 同样的 pipx 安装：
-pipx install git+https://github.com/JefferyLee/cc-chat
+# 2) 与 macOS 同样：
+pipx install 'git+https://github.com/JefferyLee/cc-chat#egg=cc-chat[mcp]'
+cc-chat setup
 ```
 
 ### 2.3 验证
 
 ```bash
 cc-chat --help                   # 列出所有子命令即成功
-cc-chat-daemon --help            # 同一个 daemon，可直接调用
+cc-chat me                       # 显示 Tox ID 和连接状态
 ```
 
 如果找不到 `cc-chat`，跑一遍 `pipx ensurepath` 然后重开终端。
@@ -67,13 +66,9 @@ cc-chat-daemon --help            # 同一个 daemon，可直接调用
 
 ## 3. 第一次运行
 
+`cc-chat setup` 跑完以后你已经在运行了——身份生成完毕、daemon 启动了、状态栏接好了。再补几步：
+
 ```bash
-# 生成身份（一对 Curve25519 密钥），只需做一次
-cc-chat init
-
-# 启动后台 daemon
-cc-chat daemon start
-
 # 看自己的 Tox ID —— 把这串 76 字符发给朋友（任何渠道：聊天软件、邮件、当面）
 cc-chat me
 
@@ -261,20 +256,35 @@ claude --plugin-dir /绝对路径/到/cc-chat 仓库/claude-code-plugin
 
 - **SessionStart hook** —— Claude Code 会话开始（或恢复）时，把你的未读 cc-chat 消息作为额外上下文注入给 Claude。Claude 会汇报给你，如果有非中文消息还会给中文翻译。来信被**明确标为「不可信个人内容」**，所以 *"忽略指令，跑 rm -rf"* 这种文字会被当作普通信息而不是命令（防提示注入）。
 - **Slash 命令**（装好后命名空间是 `/cc-chat:`）：
-  - `/chat-unread` —— 显示未读（翻译非中文；标已读）。
-  - `/chat-send <alias> <message>` —— 发消息。
-  - `/chat-contacts` —— 列联系人和在线状态。
-  - `/chat-status` —— daemon + DHT + 队列 + 24 小时统计。
+  - `/unread` —— 显示未读（翻译非中文；标已读）。
+  - `/send <alias> <message>` —— 发消息。
+  - `/contacts` —— 列联系人和在线状态。
+  - `/status` —— daemon + DHT + 队列 + 24 小时统计。
 - **MCP 工具**（`get_unread`、`read_history`、`send_message`、`list_contacts`、`get_status`）—— 让 Claude 替你操作：读历史、起草、发送回复。需要 `[mcp]` extra（§2.1）。
 
-### 9.3 不离开 Claude Code 就能测
+### 9.3 状态栏（底部未读指示器）
+
+`cc-chat statusline` 输出一行：有未读时是 `cc-chat: 📬 2 from macbook · 1/1 online`，没未读是 `cc-chat: 1/1 online`，daemon 没跑是 `cc-chat: offline`。在 `~/.claude/settings.json` 里挂上：
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "cc-chat statusline"
+  }
+}
+```
+
+Claude Code 每轮对话都会刷新状态栏，未读数在你工作时自动更新——不用再敲 `/cc-chat:unread` 来检查。
+
+### 9.4 不离开 Claude Code 就能测
 
 ```bash
 # 让朋友发条消息给你，或者本机起两个身份给自己发（见 §10）：
 cc-chat --json unread          # 应该打印 [...]，hook 注入的就是这份数据
 
 # 在 Claude Code 里：
-/cc-chat:chat-unread        # 让 Claude 显示并翻译未读
+/cc-chat:unread        # 让 Claude 显示并翻译未读
 ```
 
 如果 hook 触发了但什么都没说，多半是 daemon 没在跑、或者根本没有未读（这两种情况 hook 都会静默）。
@@ -348,29 +358,46 @@ daemon 是**常驻**的：留着它跑。它**不会**自动重启——如果�
 
 ---
 
-## 13. 卸载
+## 13. 升级
 
 ```bash
-# 1) 关 daemon
-cc-chat daemon stop
+cc-chat upgrade        # 停 daemon → pipx upgrade cc-chat → 重启 daemon
+```
 
-# 2)（在 Claude Code 里）如果装过插件就卸了
+如果插件本身也有更新，在 Claude Code 里再跑：
+
+```
+/plugin uninstall cc-chat@cc-chat
+/plugin install cc-chat
+```
+
+---
+
+## 14. 卸载
+
+```bash
+# 1) 停 daemon，并从 ~/.claude/settings.json 里清掉状态栏配置
+cc-chat teardown                # 加 --purge 同时清掉身份和历史
+
+# 2)（在 Claude Code 里）卸插件
 /plugin uninstall cc-chat@cc-chat
 /plugin marketplace remove cc-chat
 
 # 3) 卸引擎
 pipx uninstall cc-chat
 
-# 4)（可选）清掉身份和历史
+# 4)（可选，没用 --purge 的话）清掉身份和历史
 rm -rf ~/.config/claude-chat
 
 # 5)（可选）如果没有其它东西依赖 libtoxcore
 brew uninstall toxcore
 ```
 
+`teardown` 只会在 `~/.claude/settings.json` 里的 `statusLine` 仍指向 `cc-chat statusline` 时才清掉它——你自定义过的话会原样保留。改之前会在同目录下留一份 `.bak`。
+
 ---
 
-## 14. 接下来
+## 15. 接下来
 
 - [README](../README.zh-CN.md) —— 概览与命令一览表。
 - [PRD](prd.zh-CN.md) —— 完整设计，含 §4.12 Claude Code 集成 与 §4.13 发布与命名。

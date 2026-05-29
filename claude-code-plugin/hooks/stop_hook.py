@@ -34,7 +34,7 @@ def main() -> None:
     for m in msgs:
         counts[m["alias"]] = counts.get(m["alias"], 0) + 1
     summary = ", ".join(f"{alias}({n})" for alias, n in counts.items())
-    print(f"[cc-chat] {len(msgs)} unread from {summary} — /cc-chat:chat-unread to read")
+    print(f"[cc-chat] {len(msgs)} unread from {summary} — /cc-chat:unread to read")
 
 
 if __name__ == "__main__":

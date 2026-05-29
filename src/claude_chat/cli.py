@@ -3,13 +3,14 @@ IPC and exits. Only `init` and `daemon start` touch the filesystem/process
 directly; everything else goes through the daemon.
 """
 import json
+import shutil
 import subprocess
 import sys
 import time
 
 import click
 
-from . import client, paths
+from . import bootstrap, client, paths
 from .tox import Tox
 
 _CONNECTION = {0: "offline", 1: "connected (TCP)", 2: "connected (UDP)"}
@@ -202,6 +203,30 @@ def send(ctx, alias, message):
 
 
 @cli.command()
+def statusline():
+    """One-line summary for Claude Code's statusLine setting (never fails noisily)."""
+    try:
+        st = client.request("get_status")
+        msgs = client.request("get_messages", {"unread_only": True, "limit": 100})["messages"]
+    except client.DaemonNotRunning:
+        click.echo("cc-chat: offline")
+        return
+    except client.DaemonError:
+        click.echo("cc-chat: error")
+        return
+
+    online = f"{st['contacts_online']}/{st['contacts_total']} online"
+    if msgs:
+        senders = []
+        for m in msgs:
+            if m["alias"] not in senders:
+                senders.append(m["alias"])
+        click.echo(f"cc-chat: 📬 {len(msgs)} from {', '.join(senders)} · {online}")
+    else:
+        click.echo(f"cc-chat: {online}")
+
+
+@cli.command()
 @click.argument("alias", required=False)
 @click.pass_context
 def unread(ctx, alias):
@@ -299,15 +324,8 @@ def daemon():
     """Manage the background daemon."""
 
 
-@daemon.command("start")
-def daemon_start():
-    """Start the background daemon."""
-    try:
-        client.request("get_status")
-        click.echo("daemon already running")
-        return
-    except client.DaemonNotRunning:
-        pass
+def _spawn_daemon(timeout: float = 10.0) -> int:
+    """Spawn the daemon detached and poll until it answers. Returns the PID."""
     paths.ensure_config_dir()
     proc = subprocess.Popen(
         [sys.executable, "-m", "claude_chat.daemon"],
@@ -315,15 +333,22 @@ def daemon_start():
         stderr=subprocess.DEVNULL,
         start_new_session=True,
     )
-    deadline = time.time() + 10
+    deadline = time.time() + timeout
     while time.time() < deadline:
-        try:
-            client.request("get_status")
-            click.echo(f"daemon started (pid {proc.pid})")
-            return
-        except client.DaemonNotRunning:
-            time.sleep(0.05)
+        if bootstrap.daemon_running():
+            return proc.pid
+        time.sleep(0.05)
     raise click.ClickException(f"daemon failed to start; check {paths.log_path()}")
+
+
+@daemon.command("start")
+def daemon_start():
+    """Start the background daemon."""
+    if bootstrap.daemon_running():
+        click.echo("daemon already running")
+        return
+    pid = _spawn_daemon()
+    click.echo(f"daemon started (pid {pid})")
 
 
 @daemon.command("stop")
@@ -351,6 +376,120 @@ def mcp_serve():
         raise click.ClickException(
             "MCP support needs the extra: pipx install 'cc-chat[mcp]'"
         )
+
+
+@cli.command()
+def setup():
+    """One-shot setup: init identity, start daemon, wire Claude Code statusLine."""
+    # 1. Identity
+    if bootstrap.identity_initialized():
+        click.echo("✓ Identity already initialized.")
+    else:
+        paths.ensure_config_dir()
+        t = Tox()
+        addr = t.self_get_address_hex()
+        paths.tox_state_path().write_bytes(t.get_savedata())
+        t.kill()
+        click.echo(f"✓ Generated identity (Tox ID: {addr[:16]}…). Run `cc-chat me` for the full ID.")
+
+    # 2. Daemon
+    if bootstrap.daemon_running():
+        click.echo("✓ Daemon already running.")
+    else:
+        pid = _spawn_daemon()
+        click.echo(f"✓ Daemon started (PID {pid}).")
+
+    # 3. statusLine
+    sp = bootstrap.claude_settings_path()
+    result = bootstrap.ensure_statusline()
+    if result == "added":
+        click.echo(f"✓ Wired statusLine into {sp}.")
+    elif result == "kept":
+        click.echo(f"✓ statusLine already wired in {sp}.")
+    else:  # left-custom
+        click.echo(
+            f"⚠ {sp} already has a custom statusLine — not touching it.\n"
+            f'  To enable cc-chat in the status bar, merge in: '
+            f'{{"statusLine":{{"type":"command","command":"cc-chat statusline"}}}}'
+        )
+
+    # 4. Plugin install hint (Claude Code's plugin registry isn't safe to write from outside)
+    click.echo("\nNext — install the Claude Code plugin (run inside Claude Code):")
+    click.echo("  /plugin marketplace add JefferyLee/cc-chat")
+    click.echo("  /plugin install cc-chat")
+
+
+@cli.command()
+@click.option("--purge", is_flag=True,
+              help="Also delete your identity and chat history (DESTRUCTIVE).")
+def teardown(purge):
+    """Reverse of setup: stop daemon, unwire statusLine, optionally wipe identity."""
+    # 1. Daemon
+    if bootstrap.daemon_running():
+        try:
+            client.request("shutdown")
+            click.echo("✓ Daemon stopped.")
+        except client.DaemonNotRunning:
+            click.echo("✓ Daemon stopped.")
+    else:
+        click.echo("✓ Daemon already stopped.")
+
+    # 2. statusLine
+    sp = bootstrap.claude_settings_path()
+    result = bootstrap.remove_statusline()
+    if result == "removed":
+        click.echo(f"✓ Removed statusLine entry from {sp}.")
+    elif result == "absent":
+        click.echo("✓ statusLine entry already absent.")
+    else:  # left-custom
+        click.echo(f"⚠ statusLine in {sp} isn't ours — leaving it alone.")
+
+    # 3. Optional purge
+    if purge:
+        cd = paths.config_dir()
+        if cd.exists():
+            shutil.rmtree(cd)
+            click.echo(f"✓ Removed config dir ({cd}). Your identity is gone.")
+        else:
+            click.echo(f"✓ Config dir already absent ({cd}).")
+    else:
+        click.echo(f"\n(Identity + history preserved in {paths.config_dir()}. Pass --purge to wipe.)")
+
+    # 4. Next steps
+    click.echo("\nFinish removal:")
+    click.echo("  In Claude Code:  /plugin uninstall cc-chat@cc-chat")
+    click.echo("  In terminal:     pipx uninstall cc-chat")
+
+
+@cli.command()
+def upgrade():
+    """Stop daemon, upgrade the engine via pipx, restart daemon."""
+    was_running = bootstrap.daemon_running()
+    if was_running:
+        try:
+            client.request("shutdown")
+            click.echo("→ Stopped daemon.")
+        except client.DaemonNotRunning:
+            pass
+
+    click.echo("→ Running `pipx upgrade cc-chat`...")
+    try:
+        r = subprocess.run(["pipx", "upgrade", "cc-chat"],
+                           capture_output=True, text=True)
+    except FileNotFoundError:
+        raise click.ClickException("pipx not found on PATH.")
+    click.echo(r.stdout.rstrip() or "(no output)")
+    if r.returncode != 0:
+        click.echo(r.stderr.rstrip(), err=True)
+        raise click.ClickException("pipx upgrade failed.")
+
+    if was_running:
+        pid = _spawn_daemon()
+        click.echo(f"✓ Daemon restarted (PID {pid}).")
+
+    click.echo("\nIf the plugin shipped changes too, in Claude Code:")
+    click.echo("  /plugin uninstall cc-chat@cc-chat")
+    click.echo("  /plugin install cc-chat")
 
 
 if __name__ == "__main__":
