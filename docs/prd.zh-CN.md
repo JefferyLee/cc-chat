@@ -724,6 +724,9 @@ v2 可加 server-sent events，让 CLI 工具订阅消息流。
 
 ### 4.7 CLI 命令规范
 
+**独立开关**（不需要子命令）：
+- `toxi --version` / `toxi -V` —— 打印引擎版本并退出。读自 `src/toxi/__init__.py` 的 `__version__`；按 §4.13，这个值在 `pyproject.toml`、两个 plugin manifest 之间锁住一致，`tests/test_versions.py` 强制校验。
+
 **全局开关**（放在子命令之前）：
 - `toxi --json <cmd>` —— 让任意读命令（`me`/`status`/`contacts`/`requests`/`unread`/`read`/`queue`/`introductions`/`send`）输出机器可读 JSON 而不是给人看的格式。`--json` 模式下 `unread`/`read` 是**只读 peek**,**不会**标已读 —— 让 hook 或 MCP 工具能取数而不消耗未读状态。
 

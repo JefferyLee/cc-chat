@@ -726,6 +726,9 @@ v2 may add server-sent events, letting CLI tools subscribe to the message stream
 
 ### 4.7 CLI command reference
 
+**Standalone flag** (no subcommand needed):
+- `toxi --version` / `toxi -V` — print the engine version and exit. Reads from `src/toxi/__init__.py` `__version__`; per §4.13 the same value is locked across `pyproject.toml`, both plugin manifests, and `tests/test_versions.py` enforces the lock.
+
 **Global flag** (placed before the subcommand):
 - `toxi --json <cmd>` — emit machine-readable JSON instead of human-formatted output for any read command (`me`, `status`, `contacts`, `requests`, `unread`, `read`, `queue`, `introductions`, `send`). In `--json` mode `unread` / `read` are a read-only **peek** and do *not* mark messages read — that lets a hook or MCP tool consume the data without burning the unread state.
 

@@ -1,5 +1,7 @@
 # Codex 中的 toxi 使用手册
 
+> 🌐 语言: [English](codex-usage.md) | **中文**
+
 这份手册说明在 Codex 里如何使用 toxi 收发消息、查看联系人和读取历史。它假设你已经安装了 `toxi` 引擎，并且本机能运行后台 daemon。
 
 ## 1. 先确认引擎可用
