@@ -41,6 +41,40 @@ def test_tools_call_expected_rpcs(monkeypatch):
     assert ("mark_read", {"msg_uuids": ["u1"]}) in calls
 
 
+def test_view_media_returns_inline_image(tmp_path, monkeypatch):
+    Image = pytest.importorskip("mcp.server.fastmcp").Image
+    img = tmp_path / "pic.png"
+    img.write_bytes(b"\x89PNG\r\n\x1a\n")
+    monkeypatch.setattr(
+        mcp_server.client, "request",
+        lambda method, params=None, **k: {
+            "message": {"msg_uuid": "u1", "msg_type": "image", "content": str(img)}
+        },
+    )
+    res = mcp_server.view_media("u1")
+    assert isinstance(res, Image)
+    assert res.path == img
+
+
+def test_view_media_voice_returns_path(monkeypatch):
+    monkeypatch.setattr(
+        mcp_server.client, "request",
+        lambda method, params=None, **k: {
+            "message": {"msg_uuid": "u2", "msg_type": "voice", "content": "/m/clip.ogg"}
+        },
+    )
+    res = mcp_server.view_media("u2")
+    assert "/m/clip.ogg" in res and "voice" in res
+
+
+def test_view_media_unknown_uuid(monkeypatch):
+    monkeypatch.setattr(
+        mcp_server.client, "request",
+        lambda method, params=None, **k: {"message": None},
+    )
+    assert "No message found" in mcp_server.view_media("nope")
+
+
 def test_build_server():
     pytest.importorskip("mcp")
     server = mcp_server.build_server()

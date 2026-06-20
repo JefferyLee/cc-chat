@@ -30,10 +30,18 @@ def main() -> None:
         return
 
     counts: dict[str, int] = {}
+    media: dict[str, int] = {}
+    emoji = {"image": "📷", "voice": "🎤", "video": "🎬", "file": "📎"}
     for m in msgs:
         counts[m["alias"]] = counts.get(m["alias"], 0) + 1
+        t = m.get("msg_type", "text")
+        if t in emoji:
+            media[t] = media.get(t, 0) + 1
     summary = ", ".join(f"{alias}({n})" for alias, n in counts.items())
-    print(f"[toxi] {len(msgs)} unread from {summary} — /toxi:unread to read")
+    line = f"[toxi] {len(msgs)} unread from {summary}"
+    if media:
+        line += " (" + " ".join(f"{emoji[t]}{n}" for t, n in media.items()) + ")"
+    print(line + " — /toxi:unread to read")
 
 
 if __name__ == "__main__":

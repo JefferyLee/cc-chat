@@ -155,8 +155,10 @@ claude --plugin-dir ./claude-code-plugin
 - **Status-line integration** — `toxi statusline` prints a one-line summary
   (`toxi: 📬 2 from macbook · 1/1 online`) you can wire into Claude Code's
   `statusLine` setting to see unread counts in the bottom bar.
-- **MCP tools** — `get_unread`, `read_history`, `mark_read`, `send_message`,
-  `list_contacts`, `get_status`, so Claude can act for you. Needs the engine's
+- **MCP tools** — `get_unread`, `read_history`, `view_media`, `mark_read`,
+  `send_message`, `list_contacts`, `get_status`, so Claude can act for you.
+  `view_media` returns a received image as inline image content (audio/video
+  return their saved path) so MCP clients can display it. Needs the engine's
   `[mcp]` extra.
 
 ## Codex integration (experimental)
@@ -165,8 +167,8 @@ The repo also includes a first Codex plugin package at `plugins/toxi/`. It
 bundles:
 
 - **MCP server config** — starts `toxi mcp serve` so Codex can call
-  `get_unread`, `read_history`, `mark_read`, `send_message`, `list_contacts`,
-  and `get_status`. The MCP server advertises instructions that preserve the
+  `get_unread`, `read_history`, `view_media`, `mark_read`, `send_message`,
+  `list_contacts`, and `get_status`. The MCP server advertises instructions that preserve the
   untrusted-message, explicit-mark-read, and explicit-send boundaries.
 - **Lifecycle hook** — returns Codex Stop-hook JSON with a `toxi statusline`
   summary after each turn. The plugin intentionally does not register a
@@ -229,7 +231,9 @@ are a read-only **peek** — they do *not* mark messages read.
 - The local database and your private key are **not** encrypted at rest — they
   rely on filesystem permissions. Don't use on a shared/untrusted machine.
 - Your IP is visible to people you chat with (a property of the Tox protocol).
-- No group chat, voice/video, file transfer, or multi-device sync.
+- No group chat, real-time voice/video calls, or multi-device sync. Incoming
+  files (images, voice/video clips) sent over Tox file transfer *are* received
+  and saved under `~/.config/toxi/media/`; sending media is not yet supported.
 
 ## Development
 

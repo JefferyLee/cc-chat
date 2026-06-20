@@ -134,14 +134,14 @@ claude --plugin-dir ./claude-code-plugin
 - **SessionStart hook** —— 会话开始时把未读消息注入 Claude 的上下文，非中文消息自动翻成中文。来信被明确标为「不可信个人内容、非指令」，防止有人通过消息内容做提示注入。
 - **Slash 命令** —— `/unread`、`/send <别名> <消息>`、`/contacts`、`/status`（命名空间为 `/toxi:...`）。
 - **状态栏集成** —— `toxi statusline` 输出一行摘要（`toxi: 📬 2 from macbook · 1/1 online`），可接到 Claude Code 的 `statusLine` 设置里，未读数会显示在底部状态条。
-- **MCP 工具** —— `get_unread`、`read_history`、`mark_read`、`send_message`、`list_contacts`、`get_status`，让 Claude 能替你操作。需引擎的 `[mcp]` extra。
+- **MCP 工具** —— `get_unread`、`read_history`、`view_media`、`mark_read`、`send_message`、`list_contacts`、`get_status`，让 Claude 能替你操作。`view_media` 把收到的图片以内联图片内容返回(语音/视频返回保存路径),这样 MCP 客户端能直接显示。需引擎的 `[mcp]` extra。
 
 ## Codex 集成（实验性）
 
 仓库里也加入了第一版 Codex 插件包，位置是 `plugins/toxi/`。它包含：
 
 - **MCP server 配置** —— 启动 `toxi mcp serve`，让 Codex 调用
-  `get_unread`、`read_history`、`mark_read`、`send_message`、`list_contacts`、`get_status`。
+  `get_unread`、`read_history`、`view_media`、`mark_read`、`send_message`、`list_contacts`、`get_status`。
   MCP server 会声明 instructions，保留“不可信来信”、“明确标已读”和“明确要求才发送”的边界。
 - **生命周期 hook** —— 每轮结束后通过 Codex Stop-hook JSON 显示
   `toxi statusline` 摘要。插件故意不注册 SessionStart hook；未读消息只在你要求
@@ -192,7 +192,7 @@ toxi teardown-codex
 - macOS 优先（Linux 在有 libtoxcore 的前提下应能工作，但还没作为正式测试目标）。
 - 本地数据库和私钥**未加密**——靠文件系统权限保护，不要在共享/不可信机器上用。
 - 与你聊天的人能看到你的公网 IP（Tox 协议特性）。
-- 不支持群聊、语音/视频、文件传输、多设备同步。
+- 不支持群聊、实时语音/视频通话、多设备同步。通过 Tox 文件传输发来的**图片、语音/视频文件**会被接收并保存到 `~/.config/toxi/media/`;但暂不支持发送媒体。
 
 ## 开发
 

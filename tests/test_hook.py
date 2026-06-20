@@ -40,6 +40,22 @@ def test_hook_emits_context_for_unread(tmp_path):
     assert "bob: hello" in ctx and "carol: hola" in ctx
 
 
+def test_hook_describes_media_messages(tmp_path):
+    r = _run({
+        "TOXI_BIN": _fake_toxi(tmp_path),
+        "FAKE_OUT": json.dumps([
+            {"alias": "bob", "msg_type": "text", "content": "hi"},
+            {"alias": "carol", "msg_type": "image", "content": "/m/pic.png"},
+            {"alias": "dave", "msg_type": "voice", "content": "/m/clip.ogg"},
+        ]),
+    })
+    assert r.returncode == 0
+    ctx = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+    assert "bob: hi" in ctx
+    assert "carol sent an image (saved at: /m/pic.png)" in ctx
+    assert "dave sent a voice message (saved at: /m/clip.ogg)" in ctx
+
+
 def test_hook_silent_when_no_unread(tmp_path):
     r = _run({"TOXI_BIN": _fake_toxi(tmp_path), "FAKE_OUT": "[]"})
     assert r.returncode == 0 and r.stdout.strip() == ""

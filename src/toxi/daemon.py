@@ -9,12 +9,45 @@ import logging
 import os
 import socket
 import time
+import uuid as _uuid
 from logging.handlers import RotatingFileHandler
 
 from . import client, config, db, envelope, ipc, paths
-from .tox import MAX_MESSAGE_LENGTH, NO_FRIEND, Tox
+from .tox import (
+    FILE_CONTROL_CANCEL,
+    FILE_CONTROL_RESUME,
+    FILE_KIND_DATA,
+    MAX_MESSAGE_LENGTH,
+    NO_FRIEND,
+    Tox,
+)
 
 SWEEP_INTERVAL = 30  # seconds between ACK-timeout retry sweeps
+MAX_FILE_BYTES = 100 * 1024 * 1024  # cap on an accepted incoming file (100 MB)
+
+# Map a filename extension to one of our media msg_types (PRD: image/voice/video).
+_IMAGE_EXTS = {"jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif", "tiff", "tif", "svg"}
+_VOICE_EXTS = {"ogg", "oga", "opus", "mp3", "m4a", "aac", "wav", "flac", "amr", "wma"}
+_VIDEO_EXTS = {"mp4", "mov", "webm", "mkv", "avi", "m4v", "3gp", "flv", "wmv", "mpg", "mpeg"}
+
+
+def _classify_media(filename: str) -> str:
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext in _IMAGE_EXTS:
+        return "image"
+    if ext in _VOICE_EXTS:
+        return "voice"
+    if ext in _VIDEO_EXTS:
+        return "video"
+    return "file"
+
+
+def _safe_filename(raw: bytes) -> str:
+    """Strip any path components and control chars from a sender-supplied name."""
+    name = os.path.basename(raw.decode("utf-8", "replace"))
+    name = name.replace("/", "_").replace("\\", "_").replace("\x00", "")
+    name = "".join(c for c in name if c.isprintable()).strip()
+    return name[:120] or "file"
 
 
 def _is_hex(s: str) -> bool:
@@ -50,6 +83,7 @@ class Daemon:
         self.fail_after = rc["fail_after_hours"] * 3600
         self._last_sweep = 0.0
         self._started_at = time.time()
+        self._transfers: dict[tuple[int, int], dict] = {}  # in-flight incoming files
         self.tox = self._init_tox()
         self._remap_friend_numbers()
         self._save_state()  # ensure tox_state.bin exists from first run
@@ -67,6 +101,7 @@ class Daemon:
             "list_requests": self._list_requests,
             "send_message": self._send_message,
             "get_messages": self._get_messages,
+            "get_message": self._get_message,
             "mark_read": self._mark_read,
             "list_queue": self._list_queue,
             "introduce": self._introduce,
@@ -86,6 +121,9 @@ class Daemon:
         tox.on_friend_request(self._on_friend_request)
         tox.on_friend_connection_status(self._on_friend_connection_status)
         tox.on_friend_message(self._on_friend_message)
+        tox.on_file_recv(self._on_file_recv)
+        tox.on_file_recv_chunk(self._on_file_recv_chunk)
+        tox.on_file_recv_control(self._on_file_recv_control)
         log.info("Tox ID: %s", tox.self_get_address_hex())
         return tox
 
@@ -239,6 +277,96 @@ class Daemon:
                  int(time.time())),
             )
             self.db.commit()
+
+    # --- incoming file transfers (image/voice/video, fired during tox.iterate()) ---
+    def _on_file_recv(self, friend_number: int, file_number: int, kind: int,
+                      file_size: int, filename: bytes) -> None:
+        """A friend offers a file. Accept data files from known contacts, store
+        them under media/, and reject everything else (avatars, oversized, unknown)."""
+        key = (friend_number, file_number)
+        contact = self.db.execute(
+            "SELECT id FROM contacts WHERE friend_number=?", (friend_number,)
+        ).fetchone()
+        if contact is None or kind != FILE_KIND_DATA or (file_size and file_size > MAX_FILE_BYTES):
+            self.tox.file_control(friend_number, file_number, FILE_CONTROL_CANCEL)
+            return
+        name = _safe_filename(filename)
+        uid = str(_uuid.uuid4())
+        final_path = paths.ensure_media_dir() / f"{uid}__{name}"
+        part_path = final_path.with_name(final_path.name + ".part")
+        try:
+            fh = open(part_path, "wb")
+        except OSError:
+            log.exception("could not open media file for writing")
+            self.tox.file_control(friend_number, file_number, FILE_CONTROL_CANCEL)
+            return
+        self._transfers[key] = {
+            "uuid": uid, "contact_id": contact["id"], "msg_type": _classify_media(name),
+            "fh": fh, "final_path": final_path, "part_path": part_path,
+            "received": 0, "ts": int(time.time()),
+        }
+        self.tox.file_control(friend_number, file_number, FILE_CONTROL_RESUME)
+        log.info("receiving %s (%s) from friend %d", name,
+                 self._transfers[key]["msg_type"], friend_number)
+
+    def _on_file_recv_chunk(self, friend_number: int, file_number: int,
+                            position: int, data: bytes) -> None:
+        key = (friend_number, file_number)
+        tr = self._transfers.get(key)
+        if tr is None:
+            return
+        if not data:  # zero-length chunk signals completion
+            self._finish_transfer(key)
+            return
+        tr["received"] += len(data)
+        if tr["received"] > MAX_FILE_BYTES:
+            log.warning("incoming file exceeded size cap; cancelling")
+            self.tox.file_control(friend_number, file_number, FILE_CONTROL_CANCEL)
+            self._discard_transfer(key)
+            return
+        try:
+            tr["fh"].seek(position)
+            tr["fh"].write(data)
+        except OSError:
+            log.exception("error writing media chunk")
+            self.tox.file_control(friend_number, file_number, FILE_CONTROL_CANCEL)
+            self._discard_transfer(key)
+
+    def _on_file_recv_control(self, friend_number: int, file_number: int, control: int) -> None:
+        if control == FILE_CONTROL_CANCEL:
+            self._discard_transfer((friend_number, file_number))
+
+    def _finish_transfer(self, key: tuple[int, int]) -> None:
+        tr = self._transfers.pop(key, None)
+        if tr is None:
+            return
+        try:
+            tr["fh"].close()
+            os.replace(tr["part_path"], tr["final_path"])
+        except OSError:
+            log.exception("could not finalize received file")
+            return
+        self.db.execute(
+            "INSERT OR IGNORE INTO messages (msg_uuid, contact_id, direction, msg_type, "
+            "content, created_at, received_at, status) VALUES (?, ?, 'in', ?, ?, ?, ?, 'received')",
+            (tr["uuid"], tr["contact_id"], tr["msg_type"], str(tr["final_path"]),
+             tr["ts"], int(time.time())),
+        )
+        self.db.commit()
+        log.info("received %s message from contact %d", tr["msg_type"], tr["contact_id"])
+
+    def _discard_transfer(self, key: tuple[int, int]) -> None:
+        tr = self._transfers.pop(key, None)
+        if tr is None:
+            return
+        try:
+            tr["fh"].close()
+        except OSError:
+            pass
+        try:
+            tr["part_path"].unlink(missing_ok=True)
+        except OSError:
+            pass
 
     def _save_state(self) -> None:
         data = self.tox.get_savedata()
@@ -511,13 +639,21 @@ class Daemon:
             args.append(params["alias"])
         if params.get("unread_only"):
             conds.append("m.direction='in' AND m.read_at IS NULL")
-        query = ("SELECT m.msg_uuid, c.alias, m.direction, m.content, m.created_at, "
+        query = ("SELECT m.msg_uuid, c.alias, m.direction, m.msg_type, m.content, m.created_at, "
                  "m.status, m.read_at FROM messages m JOIN contacts c ON c.id=m.contact_id")
         if conds:
             query += " WHERE " + " AND ".join(conds)
         query += " ORDER BY m.created_at DESC, m.id DESC LIMIT ?"
         args.append(int(params.get("limit", 20)))
         return {"messages": [dict(r) for r in self.db.execute(query, args).fetchall()]}
+
+    def _get_message(self, params: dict) -> dict:
+        row = self.db.execute(
+            "SELECT m.msg_uuid, c.alias, m.direction, m.msg_type, m.content, m.created_at, "
+            "m.read_at FROM messages m JOIN contacts c ON c.id=m.contact_id WHERE m.msg_uuid=?",
+            (params.get("msg_uuid"),),
+        ).fetchone()
+        return {"message": dict(row) if row else None}
 
     def _mark_read(self, params: dict) -> dict:
         now = int(time.time())

@@ -199,6 +199,18 @@ def _ago(ts: int) -> str:
     return f"{d // 86400}d ago"
 
 
+_MEDIA_LABEL = {"image": "📷 image", "voice": "🎤 voice message",
+                "video": "🎬 video", "file": "📎 file"}
+
+
+def _content(m: dict) -> str:
+    """Render a message body for the terminal; media rows show type + saved path."""
+    if m.get("msg_type", "text") == "text":
+        return m["content"]
+    label = _MEDIA_LABEL.get(m["msg_type"], "📎 file")
+    return f"[{label}] {m['content']}"
+
+
 @cli.command()
 @click.argument("alias")
 @click.argument("message")
@@ -254,7 +266,7 @@ def unread(ctx, alias):
         return
     click.echo(f"[{len(msgs)} unread]")
     for m in reversed(msgs):  # oldest first
-        click.echo(f"  {m['alias']} ({_ago(m['created_at'])}): {m['content']}")
+        click.echo(f"  {m['alias']} ({_ago(m['created_at'])}): {_content(m)}")
     _call("mark_read", {"msg_uuids": [m["msg_uuid"] for m in msgs]})
 
 
@@ -272,7 +284,7 @@ def read(ctx, alias, limit):
         return
     for m in reversed(msgs):  # oldest first
         who = "you" if m["direction"] == "out" else m["alias"]
-        click.echo(f"  {who} ({_ago(m['created_at'])}): {m['content']}")
+        click.echo(f"  {who} ({_ago(m['created_at'])}): {_content(m)}")
     unread_in = [m["msg_uuid"] for m in msgs if m["direction"] == "in" and m["read_at"] is None]
     if unread_in:
         _call("mark_read", {"msg_uuids": unread_in})

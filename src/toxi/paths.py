@@ -47,5 +47,15 @@ def tox_state_path() -> Path:
     return config_dir() / "tox_state.bin"
 
 
+def media_dir() -> Path:
+    return config_dir() / "media"
+
+
+def ensure_media_dir() -> Path:
+    d = media_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def bootstrap_path() -> Path:
     return config_dir() / "bootstrap.json"

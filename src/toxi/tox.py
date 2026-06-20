@@ -20,6 +20,13 @@ MAX_MESSAGE_LENGTH = 1372  # TOX_MAX_MESSAGE_LENGTH: cap on a single sent messag
 SAVEDATA_TYPE_NONE = 0
 SAVEDATA_TYPE_TOX_SAVE = 1
 
+# file transfer (tox.h Tox_File_Kind / Tox_File_Control)
+FILE_KIND_DATA = 0
+FILE_KIND_AVATAR = 1
+FILE_CONTROL_RESUME = 0
+FILE_CONTROL_PAUSE = 1
+FILE_CONTROL_CANCEL = 2
+
 
 class ToxError(Exception):
     pass
@@ -93,6 +100,12 @@ def _setup_signatures(lib: _C.CDLL) -> None:
         _C.c_void_p, _C.c_uint32, _C.c_int, _C.c_char_p, _C.c_size_t, _C.POINTER(_C.c_int)
     ]
 
+    # file transfer (receive side only: accept/cancel incoming transfers)
+    lib.tox_file_control.restype = _C.c_bool
+    lib.tox_file_control.argtypes = [
+        _C.c_void_p, _C.c_uint32, _C.c_uint32, _C.c_int, _C.c_void_p
+    ]
+
 
 _setup_signatures(_lib)
 
@@ -101,10 +114,27 @@ _SELF_CONN_CB = _C.CFUNCTYPE(None, _C.c_void_p, _C.c_int, _C.c_void_p)
 _FRIEND_REQ_CB = _C.CFUNCTYPE(None, _C.c_void_p, _C.POINTER(_C.c_uint8), _C.c_char_p, _C.c_size_t, _C.c_void_p)
 _FRIEND_CONN_CB = _C.CFUNCTYPE(None, _C.c_void_p, _C.c_uint32, _C.c_int, _C.c_void_p)
 _FRIEND_MSG_CB = _C.CFUNCTYPE(None, _C.c_void_p, _C.c_uint32, _C.c_int, _C.c_char_p, _C.c_size_t, _C.c_void_p)
+# file_recv(tox, friend_number, file_number, kind, file_size, filename, filename_length, ud)
+_FILE_RECV_CB = _C.CFUNCTYPE(
+    None, _C.c_void_p, _C.c_uint32, _C.c_uint32, _C.c_uint32, _C.c_uint64,
+    _C.POINTER(_C.c_uint8), _C.c_size_t, _C.c_void_p,
+)
+# file_recv_chunk(tox, friend_number, file_number, position, data, length, ud)
+_FILE_RECV_CHUNK_CB = _C.CFUNCTYPE(
+    None, _C.c_void_p, _C.c_uint32, _C.c_uint32, _C.c_uint64,
+    _C.POINTER(_C.c_uint8), _C.c_size_t, _C.c_void_p,
+)
+# file_recv_control(tox, friend_number, file_number, control, ud)
+_FILE_RECV_CONTROL_CB = _C.CFUNCTYPE(
+    None, _C.c_void_p, _C.c_uint32, _C.c_uint32, _C.c_int, _C.c_void_p,
+)
 _lib.tox_callback_self_connection_status.argtypes = [_C.c_void_p, _SELF_CONN_CB]
 _lib.tox_callback_friend_request.argtypes = [_C.c_void_p, _FRIEND_REQ_CB]
 _lib.tox_callback_friend_connection_status.argtypes = [_C.c_void_p, _FRIEND_CONN_CB]
 _lib.tox_callback_friend_message.argtypes = [_C.c_void_p, _FRIEND_MSG_CB]
+_lib.tox_callback_file_recv.argtypes = [_C.c_void_p, _FILE_RECV_CB]
+_lib.tox_callback_file_recv_chunk.argtypes = [_C.c_void_p, _FILE_RECV_CHUNK_CB]
+_lib.tox_callback_file_recv_control.argtypes = [_C.c_void_p, _FILE_RECV_CONTROL_CB]
 
 
 class Tox:
@@ -198,6 +228,11 @@ class Tox:
         )
         return err.value == 0
 
+    # --- file transfer (receive side) ---
+    def file_control(self, friend_number: int, file_number: int, control: int) -> bool:
+        """Accept (RESUME), pause, or cancel an incoming transfer."""
+        return _lib.tox_file_control(self._ptr, friend_number, file_number, control, None)
+
     # --- callbacks ---
     # Each setter takes a Python callable with already-decoded arguments.
     def on_self_connection_status(self, fn) -> None:
@@ -228,3 +263,29 @@ class Tox:
         cb = _FRIEND_MSG_CB(trampoline)
         self._cbs["friend_msg"] = cb
         _lib.tox_callback_friend_message(self._ptr, cb)
+
+    def on_file_recv(self, fn) -> None:
+        """fn(friend_number, file_number, kind, file_size, filename: bytes)."""
+        def trampoline(_t, friend_number, file_number, kind, file_size, name_ptr, name_len, _ud):
+            name = _C.string_at(name_ptr, name_len) if name_len else b""
+            fn(friend_number, file_number, kind, file_size, name)
+        cb = _FILE_RECV_CB(trampoline)
+        self._cbs["file_recv"] = cb
+        _lib.tox_callback_file_recv(self._ptr, cb)
+
+    def on_file_recv_chunk(self, fn) -> None:
+        """fn(friend_number, file_number, position, data: bytes). Empty data = done."""
+        def trampoline(_t, friend_number, file_number, position, data_ptr, length, _ud):
+            data = _C.string_at(data_ptr, length) if length else b""
+            fn(friend_number, file_number, position, data)
+        cb = _FILE_RECV_CHUNK_CB(trampoline)
+        self._cbs["file_recv_chunk"] = cb
+        _lib.tox_callback_file_recv_chunk(self._ptr, cb)
+
+    def on_file_recv_control(self, fn) -> None:
+        """fn(friend_number, file_number, control)."""
+        def trampoline(_t, friend_number, file_number, control, _ud):
+            fn(friend_number, file_number, control)
+        cb = _FILE_RECV_CONTROL_CB(trampoline)
+        self._cbs["file_recv_control"] = cb
+        _lib.tox_callback_file_recv_control(self._ptr, cb)
