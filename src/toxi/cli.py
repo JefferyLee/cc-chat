@@ -241,15 +241,17 @@ def statusline():
         click.echo("toxi: error")
         return
 
+    name = st.get("name", "").strip()
+    prefix = f"toxi({name})" if name else "toxi"
     online = f"{st['contacts_online']}/{st['contacts_total']} online"
     if msgs:
         senders = []
         for m in msgs:
             if m["alias"] not in senders:
                 senders.append(m["alias"])
-        click.echo(f"toxi: 📬 {len(msgs)} from {', '.join(senders)} · {online}")
+        click.echo(f"{prefix}: 📬 {len(msgs)} from {', '.join(senders)} · {online}")
     else:
-        click.echo(f"toxi: {online}")
+        click.echo(f"{prefix}: {online}")
 
 
 @cli.command()
