@@ -41,7 +41,7 @@ def main() -> None:
     line = f"[toxi] {len(msgs)} unread from {summary}"
     if media:
         line += " (" + " ".join(f"{emoji[t]}{n}" for t, n in media.items()) + ")"
-    print(line + " — /toxi:unread to read")
+    print(line + " — /toxi:unread to read (keeps your main session clean)")
 
 
 if __name__ == "__main__":

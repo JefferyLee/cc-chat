@@ -1,6 +1,6 @@
 {
   "name": "toxi",
-  "description": "🛰️ Toxi — decentralized messaging for AI coding agents, over Tox. Unread-message notifications, slash commands, MCP tools, and a bottom-bar status indicator. Requires the `toxi` engine on PATH (see repo README).",
+  "description": "🛰️ Toxi — decentralized messaging for AI coding agents, over Tox. Unread-message notifications, a low-noise /toxi:unread slash command, MCP tools, and a bottom-bar status indicator. Requires the `toxi` engine on PATH (see repo README).",
   "version": "0.3.0",
   "author": {
     "name": "Jeffery Li",
