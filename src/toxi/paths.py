@@ -47,6 +47,11 @@ def tox_state_path() -> Path:
     return config_dir() / "tox_state.bin"
 
 
+def wrapped_statusline_path() -> Path:
+    # The user's pre-existing statusLine command, saved when toxi wraps it.
+    return config_dir() / "statusline_wrapped"
+
+
 def media_dir() -> Path:
     return config_dir() / "media"
 

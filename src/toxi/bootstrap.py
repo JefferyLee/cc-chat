@@ -88,35 +88,66 @@ def _write_settings(p: Path, data: dict) -> None:
     os.replace(tmp, p)
 
 
+def wrapped_statusline_command() -> str | None:
+    """The user's pre-existing statusLine command that toxi wraps, if any."""
+    wp = paths.wrapped_statusline_path()
+    if not wp.exists():
+        return None
+    cmd = wp.read_text().strip()
+    return cmd or None
+
+
 def ensure_statusline() -> str:
     """Wire toxi into ~/.claude/settings.json.
 
-    Returns: "added" | "kept" | "left-custom".
+    If the user already runs their own command-type statusLine, toxi wraps it:
+    it takes over the statusLine slot and `toxi statusline` re-runs the original
+    and appends its own segment. Returns:
+    "added" | "kept" | "wrapped" | "left-custom".
     """
     p = claude_settings_path()
     data = _read_settings(p)
     sl = data.get("statusLine")
+    wp = paths.wrapped_statusline_path()
     if isinstance(sl, dict) and sl.get("command") == STATUSLINE_CMD:
         return "kept"
+    if isinstance(sl, dict) and sl.get("type") == "command" and isinstance(sl.get("command"), str):
+        wp.parent.mkdir(parents=True, exist_ok=True)
+        wp.write_text(sl["command"])
+        data["statusLine"] = {"type": "command", "command": STATUSLINE_CMD}
+        _write_settings(p, data)
+        return "wrapped"
     if sl is not None:
-        return "left-custom"
+        return "left-custom"  # a non-command statusLine we can't re-run — don't touch it
+    if wp.exists():
+        wp.unlink()  # clear any stale wrapped command from a prior install
     data["statusLine"] = {"type": "command", "command": STATUSLINE_CMD}
     _write_settings(p, data)
     return "added"
 
 
 def remove_statusline() -> str:
-    """Reverse of ensure_statusline.
+    """Reverse of ensure_statusline. If toxi had wrapped a prior command, restore it.
 
-    Returns: "removed" | "absent" | "left-custom".
+    Returns: "removed" | "restored" | "absent" | "left-custom".
     """
     p = claude_settings_path()
     data = _read_settings(p)
     sl = data.get("statusLine")
+    wp = paths.wrapped_statusline_path()
     if sl is None:
+        if wp.exists():
+            wp.unlink()
         return "absent"
     if not (isinstance(sl, dict) and sl.get("command") == STATUSLINE_CMD):
         return "left-custom"
+    if wp.exists():
+        prev = wp.read_text().strip()
+        wp.unlink()
+        if prev:
+            data["statusLine"] = {"type": "command", "command": prev}
+            _write_settings(p, data)
+            return "restored"
     del data["statusLine"]
     _write_settings(p, data)
     return "removed"

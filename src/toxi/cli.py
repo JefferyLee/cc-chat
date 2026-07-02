@@ -228,30 +228,78 @@ def send(ctx, alias, message):
         click.echo(f"✓ {alias} is offline — queued (will send when they come online)")
 
 
-@cli.command()
-def statusline():
-    """One-line summary for Claude Code's statusLine setting (never fails noisily)."""
+_RESET = "\033[0m"
+_BOLD_RED = "\033[1;31m"
+_YELLOW = "\033[33m"
+_DIM = "\033[2m"
+
+
+def _toxi_segment() -> str:
+    """The toxi part of the status line (colored, width-aware). Never raises."""
     try:
         st = client.request("get_status")
         msgs = client.request("get_messages", {"unread_only": True, "limit": 100})["messages"]
     except client.DaemonNotRunning:
-        click.echo("toxi: offline")
-        return
+        return f"{_YELLOW}toxi: offline{_RESET}"
     except client.DaemonError:
-        click.echo("toxi: error")
-        return
+        return f"{_YELLOW}toxi: error{_RESET}"
 
     name = st.get("name", "").strip()
     prefix = f"toxi({name})" if name else "toxi"
     online = f"{st['contacts_online']}/{st['contacts_total']} online"
-    if msgs:
-        senders = []
-        for m in msgs:
-            if m["alias"] not in senders:
-                senders.append(m["alias"])
-        click.echo(f"{prefix}: 📬 {len(msgs)} from {', '.join(senders)} · {online}")
+    if not msgs:
+        return f"{prefix}: {_DIM}{online}{_RESET}"
+
+    senders = []
+    for m in msgs:
+        if m["alias"] not in senders:
+            senders.append(m["alias"])
+    # Collapse the sender list on narrow terminals so the row doesn't overflow.
+    max_names = 1 if shutil.get_terminal_size((80, 24)).columns < 60 else 2
+    if len(senders) <= max_names:
+        who = ", ".join(senders)
     else:
-        click.echo(f"{prefix}: {online}")
+        who = ", ".join(senders[:max_names]) + f" +{len(senders) - max_names}"
+    count = f"{_BOLD_RED}📬 {len(msgs)}{_RESET}"
+    return f"{prefix}: {count} from {who} {_DIM}· {online}{_RESET}"
+
+
+def _run_wrapped_statusline() -> str:
+    """Run the user's pre-existing statusLine command, if toxi wrapped one."""
+    cmd = bootstrap.wrapped_statusline_command()
+    if not cmd:
+        return ""
+    # Claude Code pipes session JSON on stdin; forward it to the wrapped command.
+    stdin_data = ""
+    try:
+        if not sys.stdin.isatty():
+            stdin_data = sys.stdin.read()
+    except (OSError, ValueError):
+        pass
+    try:
+        r = subprocess.run(cmd, shell=True, input=stdin_data,
+                           capture_output=True, text=True, timeout=3)
+    except (subprocess.SubprocessError, OSError):
+        return ""
+    return r.stdout.strip()
+
+
+@cli.command()
+@click.option("--segment", is_flag=True,
+              help="Print only the toxi chunk (no newline, no wrapped command) to splice into your own status line.")
+def statusline(segment):
+    """One-line summary for Claude Code's statusLine setting (never fails noisily)."""
+    seg = _toxi_segment()
+    # color=True keeps our ANSI codes — statusLine runs piped, and click.echo
+    # would otherwise strip them as if writing to a non-terminal.
+    if segment:
+        click.echo(seg, color=True, nl=False)
+        return
+    wrapped = _run_wrapped_statusline()
+    if wrapped:
+        click.echo(f"{seg} {_DIM}│{_RESET} {wrapped}", color=True)
+    else:
+        click.echo(seg, color=True)
 
 
 @cli.command()
@@ -707,9 +755,11 @@ def _setup_claude() -> None:
         click.echo(f"✓ Wired statusLine into {sp}.")
     elif result == "kept":
         click.echo(f"✓ statusLine already wired in {sp}.")
+    elif result == "wrapped":
+        click.echo(f"✓ Wrapped your existing statusLine in {sp} — toxi runs it and appends its own segment.")
     else:  # left-custom
         click.echo(
-            f"⚠ {sp} already has a custom statusLine — not touching it.\n"
+            f"⚠ {sp} has a non-command statusLine toxi can't run — not touching it.\n"
             f'  To enable toxi in the status bar, merge in: '
             f'{{"statusLine":{{"type":"command","command":"toxi statusline"}}}}'
         )
@@ -759,6 +809,8 @@ def teardown(purge):
     result = bootstrap.remove_statusline()
     if result == "removed":
         click.echo(f"✓ Removed statusLine entry from {sp}.")
+    elif result == "restored":
+        click.echo(f"✓ Restored your original statusLine in {sp}.")
     elif result == "absent":
         click.echo("✓ statusLine entry already absent.")
     else:  # left-custom
