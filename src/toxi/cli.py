@@ -241,7 +241,7 @@ def _toxi_segment() -> str:
         msgs = client.request("get_messages", {"unread_only": True, "limit": 100})["messages"]
     except client.DaemonNotRunning:
         return f"{_YELLOW}toxi: offline{_RESET}"
-    except client.DaemonError:
+    except Exception:  # a status line must never crash the prompt with a traceback
         return f"{_YELLOW}toxi: error{_RESET}"
 
     name = st.get("name", "").strip()
